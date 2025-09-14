@@ -13,9 +13,71 @@ function updateURL() {
 map.on('moveend', updateURL);
 map.on('zoomend', updateURL);
 
+// Modal elements
+const closeModalBtn = document.getElementById('closeModalBtn');
+const vesselModal = document.getElementById('vesselModal');
+const vesselSearchInput = document.getElementById('vesselSearchInput');
+const vesselTableBody = document.getElementById('vesselTableBody');
+
+let allVesselsData = []; // To store all vessel data for filtering
+const vesselMarkersMap = new Map(); // To store L.Marker objects keyed by vessel ID
+
+// Close modal
+closeModalBtn.addEventListener('click', () => {
+    vesselModal.classList.add('hidden');
+});
+
+// Close modal when clicking outside
+vesselModal.addEventListener('click', (e) => {
+    if (e.target === vesselModal) {
+        vesselModal.classList.add('hidden');
+    }
+});
+
+// Render vessel table
+function renderVesselTable(vesselsToRender) {
+    vesselTableBody.innerHTML = ''; // Clear existing rows
+
+    // Sort vessels alphabetically by name
+    vesselsToRender.sort((a, b) => a.name.localeCompare(b.name));
+
+    vesselsToRender.forEach(vessel => {
+        const row = document.createElement('tr');
+        row.classList.add('hover:bg-gray-100', 'cursor-pointer');
+        row.innerHTML = `<td class="py-2 px-4 border-b border-gray-200">${vessel.name}</td>`;
+        row.addEventListener('click', () => {
+            // Navigate map to vessel position and open popup
+            if (vessel.positions && vessel.positions.length > 0) {
+                const lastPosition = vessel.positions[vessel.positions.length - 1];
+                map.setView([lastPosition.latitude, lastPosition.longitude], 18); // Zoom to vessel
+                vesselModal.classList.add('hidden'); // Close modal
+
+                // Open popup for the corresponding marker
+                const marker = vesselMarkersMap.get(vessel.id); // Assuming vessel.id is unique
+                if (marker) {
+                    marker.openPopup();
+                }
+            }
+        });
+        vesselTableBody.appendChild(row);
+    });
+}
+
+// Search functionality
+vesselSearchInput.addEventListener('keyup', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const filteredVessels = allVesselsData.filter(vessel =>
+        vessel.name.toLowerCase().includes(searchTerm)
+    );
+    renderVesselTable(filteredVessels);
+});
+
 fetch('vessels.json')
     .then(response => response.json())
     .then(data => {
+        allVesselsData = data.vessels; // Store all vessel data
+        renderVesselTable(allVesselsData); // Initial render of the table
+
         const markers = L.markerClusterGroup();
         const markerCoords = [];
         data.vessels.forEach(vessel => {
@@ -36,6 +98,7 @@ fetch('vessels.json')
                 `;
                 marker.bindPopup(popupContent);
                 markers.addLayer(marker);
+                vesselMarkersMap.set(vessel.id, marker); // Store marker in the map
                 markerCoords.push([lat, lon]);
             }
         });
@@ -55,6 +118,19 @@ fetch('vessels.json')
             }
         });
         new zoomToFitButton({ position: 'topright' }).addTo(map);
+
+        const openVesselListButton = L.Control.extend({
+            onAdd: function(map) {
+                const button = L.DomUtil.create('button', 'bg-white text-black p-2 rounded-md shadow-md');
+                button.innerHTML = 'Vessel List';
+                button.onclick = function() {
+                    vesselModal.classList.remove('hidden');
+                    renderVesselTable(allVesselsData);
+                }
+                return button;
+            }
+        });
+        new openVesselListButton({ position: 'topright' }).addTo(map);
 
         const sourceLink = L.Control.extend({
             onAdd: function(map) {
@@ -78,7 +154,5 @@ fetch('vessels.json')
             }
         } else if (markerCoords.length > 0) {
             map.fitBounds(markerCoords);
-        } else {
-            map.setView([30, 0], 2);
         }
     });
