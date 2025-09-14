@@ -190,7 +190,7 @@ function initializeMapReferences() {
         for (let k in window) {
             if(window[k] && window[k] instanceof window.L.Map) {
                 window._map = window[k];
-                
+
                 // Aggiungi listeners per aggiornare URL quando mappa si sposta o zooma
                 window._map.on('moveend', updateURL);
                 window._map.on('zoomend', updateURL);
@@ -209,7 +209,7 @@ function initializeMapReferences() {
                                 }
                             }
                         }
-                        
+
                         // Se non c'è hash valido, usa fit bounds come prima
                         // Questo sarà gestito dal comportamento predefinito di folium                // Trova il marker cluster e memorizza i marker
                 window._map.eachLayer(function(layer) {
