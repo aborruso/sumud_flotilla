@@ -133,7 +133,7 @@ const zoomToFitBtn = document.getElementById('zoomToFitBtn');
 openVesselListBtn.onclick = function() { vesselModal.style.display = 'flex'; renderVesselTable(vesselList); };
 closeModalBtn.onclick = function() { vesselModal.style.display = 'none'; };
 vesselModal.onclick = function(e) { if(e.target === vesselModal) vesselModal.style.display = 'none'; };
-zoomToFitBtn.onclick = function() { 
+zoomToFitBtn.onclick = function() {
     if(window._map && vesselList.length > 0) {
         var bounds = [];
         vesselList.forEach(function(vessel) {
