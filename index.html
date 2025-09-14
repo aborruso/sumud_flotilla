@@ -207,8 +207,11 @@
       map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
       map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
       map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
-      // Fit bounds - initial load with fixed bounds
-      zoomToFitInitial();
+      // Fit bounds - initial load with fixed bounds (only if no hash in URL)
+      const hash = window.location.hash;
+      if (!hash || hash.length <= 1) {
+        zoomToFitInitial();
+      }
     }
 
     // Initial zoom with fixed boundaries
