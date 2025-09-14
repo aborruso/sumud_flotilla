@@ -73,9 +73,13 @@ if all_marker_coordinates:
     print(f"DEBUG - bounds calcolati: {bounds}")
     m.fit_bounds(bounds)
 
-# Nota Source in basso a sinistra
-with open("../last_updated.txt") as f:
-        last_update = f.read().strip()
+
+# Nota Source in basso a sinistra (percorso robusto)
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+last_updated_path = os.path.join(script_dir, '..', 'last_updated.txt')
+with open(last_updated_path) as f:
+    last_update = f.read().strip()
 
 source_html = f'''
         <style>
