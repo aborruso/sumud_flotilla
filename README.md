@@ -63,7 +63,7 @@ This map reads vessel position data from the [official Global Sumud Flotilla tra
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/aborruso/sumud_flotilla.git
+   git clone https://github.com/ondata/sumud_flotilla.git
    cd sumud_flotilla
    ```
 
@@ -130,7 +130,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## Links
 
-- 🌐 **Live Demo**: [https://aborruso.github.io/sumud_flotilla/](https://aborruso.github.io/sumud_flotilla/)
+- 🌐 **Live Demo**: [https://ondata.github.io/sumud_flotilla/](https://ondata.github.io/sumud_flotilla/)
 - 📊 **Official Tracker**: [https://globalsumudflotilla.org/tracker/](https://globalsumudflotilla.org/tracker/)
 - 🚢 **Flotilla Website**: [https://globalsumudflotilla.org/](https://globalsumudflotilla.org/)
-- 💻 **Source Code**: [https://github.com/aborruso/sumud_flotilla](https://github.com/aborruso/sumud_flotilla)
+- 💻 **Source Code**: [https://github.com/ondata/sumud_flotilla](https://github.com/ondata/sumud_flotilla)
