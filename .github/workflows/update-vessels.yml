@@ -1,0 +1,43 @@
+name: Update Vessels Data
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Runs every 30 minutes
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Download and update vessels.json
+        run: |
+          python -c "
+import requests
+import json
+
+url = 'https://flotilla-orpin.vercel.app/api/vessels'
+response = requests.get(url)
+data = response.json()
+
+with open('vessels.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+
+      - name: Commit and push changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+          git add vessels.json
+          git commit -m "chore: Update vessels.json data" || echo "No changes to commit"
+          git push

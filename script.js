@@ -13,11 +13,7 @@ function updateURL() {
 map.on('moveend', updateURL);
 map.on('zoomend', updateURL);
 
-const dataUrl = window.location.hostname === 'aborruso.github.io'
-    ? 'https://proxy.andybandy.it/?url=https://flotilla-orpin.vercel.app/api/vessels'
-    : 'vessels.json';
-
-fetch(dataUrl)
+fetch('vessels.json')
     .then(response => response.json())
     .then(data => {
         const markers = L.markerClusterGroup();
