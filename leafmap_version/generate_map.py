@@ -24,44 +24,8 @@ MiniMap().add_to(m)
 # Aggiungi MeasureControl
 MeasureControl().add_to(m)
 
-# --- Preparo lista vessel per JS ---
-vessel_js_list = []
-marker_refs = []
-for vessel_data in data["vessels"]:
-    if vessel_data["positions"] and len(vessel_data["positions"]) > 0:
-        last_position = vessel_data["positions"][-1]
-        lat = last_position["latitude"]
-        lon = last_position["longitude"]
-        name = vessel_data["name"]
-        vessel_id = vessel_data.get("id", "")
-        # Recupero dettagli aggiuntivi
-        last_update = last_position.get("timestamp_utc", "-")
-        vessel_status = vessel_data.get("vessel_status", "-")
-        vessel_type = vessel_data.get("type", "-")
-        popup_html = f'''
-            <div class="p-2">
-                <h3 style="font-size:1.125rem;font-weight:bold;">{name}</h3>
-                <p style="font-size:0.875rem;color:#4B5563;">Last update: {last_update.replace('T', ' ')[:19]}</p>
-                <div style="margin-top:0.5rem;font-size:0.875rem;">
-                    <p><span style="font-weight:600;">Status:</span> {vessel_status}</p>
-                    <p><span style="font-weight:600;">Type:</span> {vessel_type}</p>
-                </div>
-            </div>
-        '''
-        marker = folium.Marker(
-            location=[lat, lon],
-            popup=folium.Popup(popup_html, max_width=300)
-        )
-        marker.add_to(marker_cluster)
-        all_marker_coordinates.append([lat, lon])
-        # Per JS
-        marker_refs.append((vessel_id, marker))
-        vessel_js_list.append({
-            "id": vessel_id,
-            "name": name,
-            "lat": lat,
-            "lon": lon
-        })
+
+# --- NON preparo più vessel_js_list per JS, sarà letto da vessels.json via JS ---
 
 # Fit map to bounds of all markers
 if all_marker_coordinates:
@@ -70,108 +34,14 @@ if all_marker_coordinates:
     min_lon = min(coord[1] for coord in all_marker_coordinates)
     max_lon = max(coord[1] for coord in all_marker_coordinates)
     bounds = [[min_lat, min_lon], [max_lat, max_lon]]
-    print(f"DEBUG - bounds calcolati: {bounds}")
-    m.fit_bounds(bounds)
-
-
-# Nota Source in basso a sinistra (percorso robusto)
-import os
-script_dir = os.path.dirname(os.path.abspath(__file__))
-last_updated_path = os.path.join(script_dir, '..', 'last_updated.txt')
-with open(last_updated_path) as f:
-    last_update = f.read().strip()
-
-source_html = f'''
-        <style>
-                @media (max-width: 768px) {{
-                        .source-box {{
-                                display: none !important;
-                        }}
-                }}
-        </style>
-        <div class="source-box" style="position: absolute; bottom: 20px; left: 20px; z-index: 9999; background: white; color: black; padding: 5px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 11px;">
-                <a href="https://globalsumudflotilla.org/tracker/" target="_blank" style="font-weight: bold; color: #1976D2; text-decoration: underline;">Source</a>
-                <span style="margin-left: 8px;">(data map update: {last_update})</span>
-        </div>
-'''
-
-class SourceBox(MacroElement):
-        def __init__(self, html):
-                super().__init__()
-                self._template = Template(f"""
-                        {{% macro html(this, kwargs) %}}
-                        {html}
-                        {{% endmacro %}}
-                """)
-
-m.get_root().add_child(SourceBox(source_html))
-
-# --- Modale e JS per vessel list ---
-modal_html = '''
-<div id="vesselModal" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(31,41,55,0.75);align-items:center;justify-content:center;">
-    <div style="background:white;padding:2rem;border-radius:1rem;max-width:400px;width:90vw;max-height:80vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h2 style="font-size:1.25rem;font-weight:bold;">Vessels List</h2>
-            <button id="closeModalBtn" style="font-size:2rem;line-height:1;color:#374151;background:none;border:none;cursor:pointer;">&times;</button>
-        </div>
-        <input id="vesselSearchInput" type="text" placeholder="Search vessels..." style="width:100%;padding:0.5rem;margin-bottom:1rem;border:1px solid #d1d5db;border-radius:0.375rem;">
-        <div style="max-height:50vh;overflow-y:auto;">
-            <table style="width:100%;background:white;">
-                <thead><tr><th style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:0.9rem;color:#6b7280;">Vessel Name</th></tr></thead>
-                <tbody id="vesselTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-<button id="openVesselListBtn" style="position:absolute;top:120px;left:10px;z-index:9999;background:white;color:black;padding:0.5rem 1rem;border:2px solid rgba(0,0,0,0.2);border-radius:0.25rem;box-shadow:none;font-weight:bold;cursor:pointer;">Vessels List</button>
-<button id="zoomToFitBtn" style="position:absolute;top:80px;left:10px;z-index:9999;background:white;color:black;padding:0.5rem 1rem;border:2px solid rgba(0,0,0,0.2);border-radius:0.25rem;box-shadow:none;font-weight:bold;cursor:pointer;">Zoom to fit</button>
-<script>
-const vesselList = __VESSEL_LIST_JSON__;
-const vesselModal = document.getElementById('vesselModal');
-const openVesselListBtn = document.getElementById('openVesselListBtn');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const vesselSearchInput = document.getElementById('vesselSearchInput');
-const vesselTableBody = document.getElementById('vesselTableBody');
-const zoomToFitBtn = document.getElementById('zoomToFitBtn');
-
-openVesselListBtn.onclick = function() { vesselModal.style.display = 'flex'; renderVesselTable(vesselList); };
-closeModalBtn.onclick = function() { vesselModal.style.display = 'none'; };
-vesselModal.onclick = function(e) { if(e.target === vesselModal) vesselModal.style.display = 'none'; };
-zoomToFitBtn.onclick = function() {
-    if(window._map && vesselList.length > 0) {
-        var bounds = [];
-        vesselList.forEach(function(vessel) {
-            bounds.push([vessel.lat, vessel.lon]);
-        });
-        window._map.fitBounds(bounds);
-    }
-};
-
-function renderVesselTable(vessels) {
-    vesselTableBody.innerHTML = '';
-    vessels.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).forEach(function(vessel) {
-        var row = document.createElement('tr');
-        row.style.cursor = 'pointer';
-        row.innerHTML = '<td style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;">' + vessel.name + '</td>';
-        row.onclick = function() {
-            vesselModal.style.display = 'none';
-            // Usa la Map per trovare il marker
-            var marker = window._vesselMarkers.get(vessel.id);
-            if(marker) {
-                // Prima zooma
+    marker_js = """
                 window._map.setView([vessel.lat, vessel.lon], 18);
-
-                // Aspetta che il zoom sia completato, poi apri il popup
                 setTimeout(function() {
-                    // Se il marker è in un cluster, sclusterizza definitivamente
                     if(window._markerCluster && window._markerCluster.hasLayer && window._markerCluster.hasLayer(marker)) {
                         window._markerCluster.removeLayer(marker);
                         window._map.addLayer(marker);
-                        // Traccia che questo marker è stato estratto
                         window._extractedMarkers.add(marker);
                     }
-
-                    // Apri il popup e lascialo aperto
                     marker.openPopup();
                 }, 500);
             }
@@ -183,11 +53,53 @@ vesselSearchInput.onkeyup = function(e) {
     var term = e.target.value.toLowerCase();
     renderVesselTable(vesselList.filter(function(v){return v.name.toLowerCase().includes(term);}));
 };
-</script>
-'''
 
-# Sostituisco il placeholder con il JSON vero
-modal_html = modal_html.replace("__VESSEL_LIST_JSON__", pyjson.dumps(vessel_js_list))
+// --- Carica vessels.json e genera marker dinamicamente ---
+function createMarkersAndFitBounds(vessels) {
+    if(!window._map || !window.L) return;
+    if(!window._markerCluster) {
+        window._markerCluster = L.markerClusterGroup();
+        window._map.addLayer(window._markerCluster);
+    }
+    let allCoords = [];
+    vessels.forEach(function(vessel) {
+        let marker = L.marker([vessel.lat, vessel.lon]);
+        let popupHtml = `<div class='p-2'><h3 style='font-size:1.125rem;font-weight:bold;'>${vessel.name}</h3></div>`;
+        if(vessel.last_update || vessel.status || vessel.type) {
+            popupHtml += `<p style='font-size:0.875rem;color:#4B5563;'>Last update: ${vessel.last_update ? vessel.last_update.replace('T',' ').slice(0,19) : '-'}</p><div style='margin-top:0.5rem;font-size:0.875rem;'><p><span style='font-weight:600;'>Status:</span> ${vessel.status || '-'}</p><p><span style='font-weight:600;'>Type:</span> ${vessel.type || '-'}</p></div>`;
+        }
+        marker.bindPopup(popupHtml, {maxWidth: 300});
+        window._markerCluster.addLayer(marker);
+        window._vesselMarkers.set(vessel.id, marker);
+        allCoords.push([vessel.lat, vessel.lon]);
+        marker.on('popupclose', function() {
+            if(window._extractedMarkers.has(marker)) {
+                window._map.removeLayer(marker);
+                window._markerCluster.addLayer(marker);
+                window._extractedMarkers.delete(marker);
+            }
+        });
+    });
+    if(allCoords.length > 0) {
+        window._map.fitBounds(allCoords);
+    }
+}
+
+// Carica vessels.json e aggiorna vesselList, marker e tabella
+fetch('vessels.json')
+    .then(resp => resp.json())
+    .then(json => {
+        // Supporta sia formato {vessels: [...]} che lista pura
+        vesselList = Array.isArray(json) ? json : (json.vessels || []);
+        createMarkersAndFitBounds(vesselList);
+        renderVesselTable(vesselList);
+    })
+    .catch(err => {
+        console.error('Errore caricamento vessels.json', err);
+    });
+</script>
+
+# Non serve più sostituire il placeholder vesselList
 
 # --- JS per referenziare marker e mappa ---
 marker_js = """
@@ -208,7 +120,7 @@ function updateURL() {
 
 // Funzione per inizializzare riferimenti mappa
 function initializeMapReferences() {
-    if(window._map === null && window.L && window.L.Map && window.L.Map.prototype) {
+'''
         for (let k in window) {
             if(window[k] && window[k] instanceof window.L.Map) {
                 window._map = window[k];

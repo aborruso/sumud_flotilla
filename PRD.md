@@ -11,6 +11,7 @@ Creare una mappa online per visualizzare l'ultima posizione dei vascelli della F
     *   Timestamp di ultimo aggiornamento visualizzato nel controllo Source
 
 2.  **Visualizzazione Mappa**:
+    *   Tutta la visualizzazione deve essere realizzata con **MapLibre GL JS** (no Leaflet, no Folium, no Python)
     *   Ogni vascello deve essere rappresentato da un marker sulla mappa
     *   La posizione del marker deve corrispondere all'ultima posizione geografica registrata del vascello
     *   **Clustering intelligente**: I marker devono essere raggruppati in cluster quando la mappa è zoomata out
@@ -45,26 +46,16 @@ Creare una mappa online per visualizzare l'ultima posizione dei vascelli della F
     *   **Restore State**: Ripristino automatico della posizione all'apertura
 
 7.  **Architettura**:
-    *   **Versione JavaScript**: Soluzione client-side pura con Leaflet.js
-    *   **Versione Python**: Generazione statica con folium e funzionalità JavaScript integrate
-    *   Estrazione e elaborazione dati a runtime nel browser
+    *   **Soluzione interamente client-side**: Tutto il rendering e la logica devono essere implementati in JavaScript puro, senza dipendenze Python.
+    *   **MapLibre GL JS** come unica libreria di mapping.
+    *   **Tailwind CSS** per tutto lo styling e la UI.
+    *   Estrazione e elaborazione dati a runtime nel browser.
 
 ## Implementazioni Disponibili
 
-### 1. Versione JavaScript Originale (`index.html` + `script.js`)
-- **Tecnologie**: Leaflet.js, MarkerCluster, Tailwind CSS
-- **Caratteristiche**:
-  - Aggiornamento dinamico in tempo reale
-  - Gestione URL hash per bookmark
-  - Controlli Leaflet nativi
-
-### 2. Versione Python Folium (`leafmap_version/`)
-- **Tecnologie**: Python folium, MarkerCluster, MiniMap, MeasureControl
-- **Caratteristiche**:
-  - Generazione statica con `generate_map.py`
-  - JavaScript custom integrato per vessel list
-  - Controlli folium avanzati (MiniMap, Measure)
-  - Gestione intelligente dei cluster per popup
+### Implementazione
+- Tutta la logica e la UI devono essere implementate in JavaScript puro, usando MapLibre GL JS per la mappa e Tailwind CSS per lo stile.
+- Non sono ammessi componenti Python, Folium o Leaflet.
 
 ## Specifiche Tecniche
 
@@ -97,30 +88,20 @@ Creare una mappa online per visualizzare l'ultima posizione dei vascelli della F
 *   **Manutenibilità**: Codice modulare e documentato per entrambe le versioni
 
 ## Stack Tecnologico
-
-### Versione JavaScript
-*   **Libreria Mappe**: Leaflet.js 1.9.4
-*   **Clustering**: Leaflet.markercluster 1.4.1
+### Stack Tecnologico Unico
+*   **Libreria Mappe**: MapLibre GL JS (ultima versione stabile)
+*   **Clustering**: clustering nativo MapLibre o plugin compatibile
 *   **Styling**: Tailwind CSS (CDN)
 *   **JavaScript**: Vanilla ES6+
-
-### Versione Python
-*   **Generazione Mappa**: Python folium
-*   **Plugins**: MarkerCluster, MiniMap, MeasureControl
-*   **Templating**: Branca MacroElement per componenti custom
-*   **JavaScript Runtime**: Custom JS integrato per vessel list
 
 ## File Structure
 
 ```
 sumud_flotilla/
-├── index.html              # Mappa JavaScript principale
+├── index.html              # Mappa principale (MapLibre)
 ├── script.js               # Logica JavaScript
-├── style.css               # Stili CSS
+├── style.css               # Stili CSS (Tailwind)
 ├── vessels.json            # Cache dati vessel
 ├── last_updated.txt        # Timestamp ultimo aggiornamento
 ├── PRD.md                  # Questo documento
-└── leafmap_version/        # Versione Python
-    ├── generate_map.py     # Script generazione mappa
-    └── map.html           # Mappa folium generata
 ```
