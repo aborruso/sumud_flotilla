@@ -78,7 +78,14 @@ with open("../last_updated.txt") as f:
         last_update = f.read().strip()
 
 source_html = f'''
-        <div style="position: absolute; bottom: 20px; left: 20px; z-index: 9999; background: white; color: black; padding: 5px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 11px;">
+        <style>
+                @media (max-width: 768px) {{
+                        .source-box {{
+                                display: none !important;
+                        }}
+                }}
+        </style>
+        <div class="source-box" style="position: absolute; bottom: 20px; left: 20px; z-index: 9999; background: white; color: black; padding: 5px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 11px;">
                 <a href="https://globalsumudflotilla.org/tracker/" target="_blank" style="font-weight: bold; color: #1976D2; text-decoration: underline;">Source</a>
                 <span style="margin-left: 8px;">(data map update: {last_update})</span>
         </div>
