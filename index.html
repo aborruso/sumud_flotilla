@@ -70,7 +70,7 @@
     </div>
 
   <!-- Source box -->
-  <div id="sourceBox" class="fixed bottom-4 left-4 z-20 bg-white text-black px-3 py-1 rounded shadow text-xs flex items-center hidden sm:flex">
+  <div id="sourceBox" class="fixed bottom-4 left-4 z-20 bg-white text-black px-3 py-1 rounded shadow text-xs items-center hidden md:flex">
     <a href="https://globalsumudflotilla.org/tracker/" target="_blank" class="font-bold text-blue-700 underline">Source</a>
     <span id="lastUpdate" class="ml-2 text-gray-600"></span>
   </div>
@@ -83,9 +83,15 @@
       center: [12, 37],
       zoom: 5,
       bearing: 180,
-      attributionControl: true
+      attributionControl: false
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
+
+    // Aggiungi controllo di attribuzione che rimane sempre visibile con attribuzione OSM
+    map.addControl(new maplibregl.AttributionControl({
+      compact: false,
+      customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }), 'bottom-right');
 
     // Stato globale
     let vesselList = [];
