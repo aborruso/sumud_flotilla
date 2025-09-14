@@ -87,6 +87,11 @@
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
 
+    // Aggiungi controllo di attribuzione
+    map.addControl(new maplibregl.AttributionControl({
+      compact: false
+    }), 'bottom-right');
+
     // Stato globale
     let vesselList = [];
     let clusterSourceId = 'vessels';
