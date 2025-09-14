@@ -75,6 +75,13 @@
     <span id="lastUpdate" class="ml-2 text-gray-600"></span>
   </div>
 
+  <!-- Attribution box manuale -->
+  <div id="attributionBox" class="fixed bottom-4 right-4 z-20 bg-white text-black px-3 py-1 rounded shadow text-xs items-center flex">
+    <span>
+      © <a href="https://www.maptiler.com/copyright/" target="_blank" class="text-blue-700 underline font-semibold">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="text-blue-700 underline font-semibold">OpenStreetMap contributors</a>
+    </span>
+  </div>
+
   <script>
     // Configurazione mappa
     const map = new maplibregl.Map({
@@ -86,11 +93,6 @@
       attributionControl: false
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
-
-    // Aggiungi controllo di attribuzione
-    map.addControl(new maplibregl.AttributionControl({
-      compact: false
-    }), 'bottom-right');
 
     // Stato globale
     let vesselList = [];
