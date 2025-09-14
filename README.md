@@ -44,6 +44,10 @@ This map reads vessel position data from the [official Global Sumud Flotilla tra
 - **Update Frequency**: Every 30 minutes
 - **Data Format**: JSON with vessel positions, status, and metadata
 
+**Map style and data attribution:**
+
+© [MapTiler](https://www.maptiler.com/) © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)
+
 ## Technology Stack
 
 - **Mapping Library**: [MapLibre GL JS](https://maplibre.org/) v3.6.1
