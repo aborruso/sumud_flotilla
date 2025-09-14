@@ -79,9 +79,10 @@
     // Configurazione mappa
     const map = new maplibregl.Map({
       container: 'map',
-  style: 'https://api.maptiler.com/maps/basic-v2/style.json?key=EY5ljHNQgtB2yYzidUUy',
+      style: 'https://api.maptiler.com/maps/basic-v2/style.json?key=EY5ljHNQgtB2yYzidUUy',
       center: [12, 37],
       zoom: 5,
+      bearing: 180,
       attributionControl: true
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
