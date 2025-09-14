@@ -87,12 +87,6 @@
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
 
-    // Aggiungi controllo di attribuzione che rimane sempre visibile con attribuzione OSM
-    map.addControl(new maplibregl.AttributionControl({
-      compact: false,
-      customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }), 'bottom-right');
-
     // Stato globale
     let vesselList = [];
     let clusterSourceId = 'vessels';
