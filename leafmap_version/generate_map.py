@@ -119,7 +119,8 @@ modal_html = '''
         </div>
     </div>
 </div>
-<button id="openVesselListBtn" style="position:absolute;top:80px;left:10px;z-index:9999;background:white;color:black;padding:0.5rem 1rem;border:2px solid rgba(0,0,0,0.2);border-radius:0.25rem;box-shadow:none;font-weight:bold;cursor:pointer;">Vessels List</button>
+<button id="openVesselListBtn" style="position:absolute;top:120px;left:10px;z-index:9999;background:white;color:black;padding:0.5rem 1rem;border:2px solid rgba(0,0,0,0.2);border-radius:0.25rem;box-shadow:none;font-weight:bold;cursor:pointer;">Vessels List</button>
+<button id="zoomToFitBtn" style="position:absolute;top:80px;left:10px;z-index:9999;background:white;color:black;padding:0.5rem 1rem;border:2px solid rgba(0,0,0,0.2);border-radius:0.25rem;box-shadow:none;font-weight:bold;cursor:pointer;">Zoom to fit</button>
 <script>
 const vesselList = __VESSEL_LIST_JSON__;
 const vesselModal = document.getElementById('vesselModal');
@@ -127,10 +128,20 @@ const openVesselListBtn = document.getElementById('openVesselListBtn');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const vesselSearchInput = document.getElementById('vesselSearchInput');
 const vesselTableBody = document.getElementById('vesselTableBody');
+const zoomToFitBtn = document.getElementById('zoomToFitBtn');
 
 openVesselListBtn.onclick = function() { vesselModal.style.display = 'flex'; renderVesselTable(vesselList); };
 closeModalBtn.onclick = function() { vesselModal.style.display = 'none'; };
 vesselModal.onclick = function(e) { if(e.target === vesselModal) vesselModal.style.display = 'none'; };
+zoomToFitBtn.onclick = function() { 
+    if(window._map && vesselList.length > 0) {
+        var bounds = [];
+        vesselList.forEach(function(vessel) {
+            bounds.push([vessel.lat, vessel.lon]);
+        });
+        window._map.fitBounds(bounds);
+    }
+};
 
 function renderVesselTable(vessels) {
     vesselTableBody.innerHTML = '';
