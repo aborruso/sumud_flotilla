@@ -89,7 +89,7 @@ fetch('vessels.json')
                 const popupContent = `
                     <div class="p-2">
                         <h3 class="text-lg font-bold">${vessel.name}</h3>
-                        <p class="text-sm text-gray-600">Last update: ${new Date(lastPosition.timestamp_utc).toLocaleString()}</p>
+                        <p class="text-sm text-gray-600">Last update: ${new Date(lastPosition.timestamp_utc).toISOString().replace('T', ' ').substring(0, 19)}</p>
                         <div class="mt-2 text-sm">
                             <p><span class="font-semibold">Status:</span> ${vessel.vessel_status}</p>
                             <p><span class="font-semibold">Type:</span> ${vessel.type}</p>
@@ -155,4 +155,34 @@ fetch('vessels.json')
         } else if (markerCoords.length > 0) {
             map.fitBounds(markerCoords);
         }
+    });
+
+// Fetch last updated timestamp
+fetch('last_updated.txt')
+    .then(response => response.text())
+    .then(timestamp => {
+        const sourceLinkControl = L.Control.extend({
+            onAdd: function(map) {
+                const link = L.DomUtil.create('a', 'bg-white text-black p-2 rounded-md shadow-md cursor-pointer');
+                link.href = 'https://globalsumudflotilla.org/tracker/';
+                link.innerHTML = `Source (Last updated: ${timestamp})`;
+                link.target = '_blank';
+                return link;
+            }
+        });
+        new sourceLinkControl({ position: 'bottomleft' }).addTo(map);
+    })
+    .catch(error => {
+        console.error('Error fetching last_updated.txt:', error);
+        // Fallback to original source link if fetching fails
+        const sourceLinkControl = L.Control.extend({
+            onAdd: function(map) {
+                const link = L.DomUtil.create('a', 'bg-white text-black p-2 rounded-md shadow-md cursor-pointer');
+                link.href = 'https://globalsumudflotilla.org/tracker/';
+                link.innerHTML = 'Source';
+                link.target = '_blank';
+                return link;
+            }
+        });
+        new sourceLinkControl({ position: 'bottomleft' }).addTo(map);
     });
