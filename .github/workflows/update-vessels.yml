@@ -21,18 +21,7 @@ jobs:
         run: pip install requests
 
       - name: Download and update vessels.json
-        run: |
-          python -c "
-import requests
-import json
-
-url = 'https://flotilla-orpin.vercel.app/api/vessels'
-response = requests.get(url)
-data = response.json()
-
-with open('vessels.json', 'w') as f:
-    json.dump(data, f, indent=2)
-"
+        run: curl -s https://flotilla-orpin.vercel.app/api/vessels -o vessels.json
 
       - name: Commit and push changes
         run: |
