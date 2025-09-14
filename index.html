@@ -200,8 +200,29 @@
       map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
       map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
       map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
-      // Fit bounds
-      zoomToFit();
+      // Fit bounds - initial load with fixed bounds
+      zoomToFitInitial();
+    }
+
+    // Initial zoom with fixed boundaries
+    function zoomToFitInitial() {
+      if (!vesselList.length) return;
+      const lats = vesselList.map(v => v.lat);
+      const lons = vesselList.map(v => v.lon);
+
+      // Hard-coded values for initial load
+      const minY = 29.87923893499331;  // Fixed south boundary
+      const maxX = 36.187938538536585; // Fixed east boundary
+
+      // Dynamic values from vessel data
+      const minX = Math.min(...lons);  // West boundary from vessels
+      const maxY = Math.max(...lats);  // North boundary from vessels
+
+      const bounds = [
+        [minX, minY],  // Southwest corner: dynamic west, fixed south
+        [maxX, maxY]   // Northeast corner: fixed east, dynamic north
+      ];
+      map.fitBounds(bounds, { padding: 60, duration: 800, bearing: 180 });
     }
 
     // Mostra popup vessel
@@ -263,14 +284,16 @@
       closeInfoModalBtn.onclick = () => infoModal.classList.add('hidden');
       infoModal.onclick = e => { if (e.target === infoModal) infoModal.classList.add('hidden'); };
 
-    // Zoom to fit
+    // Zoom to fit (button click - uses only vessel data)
     function zoomToFit() {
       if (!vesselList.length) return;
       const lats = vesselList.map(v => v.lat);
       const lons = vesselList.map(v => v.lon);
+
+      // All boundaries calculated from vessel data
       const bounds = [
-        [Math.min(...lons), Math.min(...lats)],
-        [Math.max(...lons), Math.max(...lats)]
+        [Math.min(...lons), Math.min(...lats)],  // Southwest corner from vessels
+        [Math.max(...lons), Math.max(...lats)]   // Northeast corner from vessels
       ];
       map.fitBounds(bounds, { padding: 60, duration: 800, bearing: 180 });
     }
