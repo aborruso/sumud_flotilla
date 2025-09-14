@@ -4,6 +4,8 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
+
+
 function updateURL() {
     const zoom = map.getZoom();
     const center = map.getCenter();
@@ -132,17 +134,6 @@ fetch('vessels.json')
         });
         new openVesselListButton({ position: 'topright' }).addTo(map);
 
-        const sourceLink = L.Control.extend({
-            onAdd: function(map) {
-                const link = L.DomUtil.create('a', 'bg-white text-black p-2 rounded-md shadow-md cursor-pointer');
-                link.href = 'https://globalsumudflotilla.org/tracker/';
-                link.innerHTML = 'Source';
-                link.target = '_blank';
-                return link;
-            }
-        });
-        new sourceLink({ position: 'bottomleft' }).addTo(map);
-
         const hash = window.location.hash;
         if (hash) {
             const parts = hash.substring(1).split('/');
@@ -163,25 +154,16 @@ fetch('last_updated.txt')
     .then(timestamp => {
         const sourceLinkControl = L.Control.extend({
             onAdd: function(map) {
-                const link = L.DomUtil.create('a', 'bg-white text-black p-2 rounded-md shadow-md cursor-pointer');
-                link.href = 'https://globalsumudflotilla.org/tracker/';
-                link.innerHTML = `Source (Last updated: ${timestamp})`;
-                link.target = '_blank';
-                return link;
-            }
-        });
-        new sourceLinkControl({ position: 'bottomleft' }).addTo(map);
-    })
-    .catch(error => {
-        console.error('Error fetching last_updated.txt:', error);
-        // Fallback to original source link if fetching fails
-        const sourceLinkControl = L.Control.extend({
-            onAdd: function(map) {
-                const link = L.DomUtil.create('a', 'bg-white text-black p-2 rounded-md shadow-md cursor-pointer');
+                const container = L.DomUtil.create('div', 'bg-white text-black p-2 rounded-md shadow-md');
+                const link = L.DomUtil.create('a', 'cursor-pointer', container);
                 link.href = 'https://globalsumudflotilla.org/tracker/';
                 link.innerHTML = 'Source';
                 link.target = '_blank';
-                return link;
+
+                const span = L.DomUtil.create('span', 'ml-1', container);
+                span.innerHTML = `(data map update: ${timestamp})`;
+
+                return container;
             }
         });
         new sourceLinkControl({ position: 'bottomleft' }).addTo(map);

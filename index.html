@@ -1,49 +1,1245 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sumud Flotilla Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="style.css">
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_affbc6735955420a6d3dd5338ddd3c28 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.1.0/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.1.0/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.1.0/MarkerCluster.Default.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.css"/>
+    <script src="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.css"/>
 </head>
 <body>
     
-    <div id="map"></div>
-
     
+<script>
+window._vesselMarkers = new Map();
+window._map = null;
+window._markerCluster = null;
+window._extractedMarkers = new Set(); // Tiene traccia dei marker estratti dal cluster
 
-    <div id="vesselModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-[1000] hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Vessel List</h2>
-                <button id="closeModalBtn" class="text-gray-600 hover:text-gray-900">&times;</button>
-            </div>
-            <input type="text" id="vesselSearchInput" placeholder="Search vessels..." class="w-full p-2 border border-gray-300 rounded-md mb-4">
-            <div class="max-h-80 overflow-y-auto">
-                <table class="min-w-full bg-white">
-                    <thead>
-                        <tr>
-                            <th class="py-2 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-600">Vessel Name</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vesselTableBody">
-                        <!-- Vessel rows will be inserted here by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
+// Funzione per aggiornare l'URL con posizione e zoom correnti
+function updateURL() {
+    if(window._map) {
+        const zoom = window._map.getZoom();
+        const center = window._map.getCenter();
+        window.location.hash = zoom + '/' + center.lat.toFixed(4) + '/' + center.lng.toFixed(4);
+    }
+}
+
+// Funzione per inizializzare riferimenti mappa
+function initializeMapReferences() {
+    if(window._map === null && window.L && window.L.Map && window.L.Map.prototype) {
+        for (let k in window) {
+            if(window[k] && window[k] instanceof window.L.Map) {
+                window._map = window[k];
+                
+                // Aggiungi listeners per aggiornare URL quando mappa si sposta o zooma
+                window._map.on('moveend', updateURL);
+                window._map.on('zoomend', updateURL);
+
+                // Leggi hash dall'URL per impostare vista iniziale
+                const hash = window.location.hash;
+                        if (hash) {
+                            const parts = hash.substring(1).split('/');
+                            if (parts.length === 3) {
+                                const zoom = parseInt(parts[0], 10);
+                                const lat = parseFloat(parts[1]);
+                                const lon = parseFloat(parts[2]);
+                                if (!isNaN(zoom) && !isNaN(lat) && !isNaN(lon)) {
+                                    window._map.setView([lat, lon], zoom);
+                                    return; // Exit early, don't trigger fit bounds
+                                }
+                            }
+                        }
+                        
+                        // Se non c'è hash valido, usa fit bounds come prima
+                        // Questo sarà gestito dal comportamento predefinito di folium                // Trova il marker cluster e memorizza i marker
+                window._map.eachLayer(function(layer) {
+                    if(layer instanceof window.L.MarkerClusterGroup) {
+                        window._markerCluster = layer;
+
+                        // Memorizza tutti i marker con coordinate come chiave
+                        layer.eachLayer(function(marker) {
+                            if(marker instanceof window.L.Marker) {
+                                const latLng = marker.getLatLng();
+                                const coordKey = latLng.lat.toFixed(6) + "," + latLng.lng.toFixed(6);
+
+                                // Trova l'ID vessel corrispondente
+                                vesselList.forEach(function(vessel) {
+                                    const vesselCoordKey = vessel.lat.toFixed(6) + "," + vessel.lon.toFixed(6);
+                                    if(coordKey === vesselCoordKey) {
+                                        window._vesselMarkers.set(vessel.id, marker);
+                                    }
+                                });
+
+                                // Aggiungi listener per quando il popup viene chiuso
+                                marker.on('popupclose', function() {
+                                    // Se questo marker è stato estratto dal cluster, rimettilo
+                                    if(window._extractedMarkers.has(marker)) {
+                                        window._map.removeLayer(marker);
+                                        window._markerCluster.addLayer(marker);
+                                        window._extractedMarkers.delete(marker);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+                break;
+            }
+        }
+    }
+}
+
+// Prova a inizializzare dopo che la mappa è caricata
+setTimeout(initializeMapReferences, 1000);
+setTimeout(initializeMapReferences, 2000);
+setTimeout(initializeMapReferences, 3000);
+</script>
+
+<div id="vesselModal" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(31,41,55,0.75);align-items:center;justify-content:center;">
+    <div style="background:white;padding:2rem;border-radius:1rem;max-width:400px;width:90vw;max-height:80vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h2 style="font-size:1.25rem;font-weight:bold;">Vessels List</h2>
+            <button id="closeModalBtn" style="font-size:2rem;line-height:1;color:#374151;background:none;border:none;cursor:pointer;">&times;</button>
+        </div>
+        <input id="vesselSearchInput" type="text" placeholder="Search vessels..." style="width:100%;padding:0.5rem;margin-bottom:1rem;border:1px solid #d1d5db;border-radius:0.375rem;">
+        <div style="max-height:50vh;overflow-y:auto;">
+            <table style="width:100%;background:white;">
+                <thead><tr><th style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:0.9rem;color:#6b7280;">Vessel Name</th></tr></thead>
+                <tbody id="vesselTableBody"></tbody>
+            </table>
         </div>
     </div>
+</div>
+<button id="openVesselListBtn" style="position:absolute;top:80px;left:10px;z-index:9999;background:white;color:black;padding:0.5rem 1rem;border:2px solid rgba(0,0,0,0.2);border-radius:0.25rem;box-shadow:none;font-weight:bold;cursor:pointer;">Vessels List</button>
+<script>
+const vesselList = [{"id": 21, "name": "Alma", "lat": 37.278531, "lon": 9.883533}, {"id": 22, "name": "Estrella Y Manuel", "lat": 37.278355, "lon": 9.8843613}, {"id": 23, "name": "Adara", "lat": 37.275276, "lon": 9.881937}, {"id": 24, "name": "Mikeno", "lat": 37.278339, "lon": 9.8824682}, {"id": 26, "name": "Jeannot III", "lat": 37.278543, "lon": 9.88306}, {"id": 27, "name": "Ohwayla", "lat": 36.898945, "lon": 10.354295}, {"id": 29, "name": "Inana", "lat": 37.278425, "lon": 9.882438}, {"id": 30, "name": "Familia Madeira", "lat": 37.279003, "lon": 9.882996}, {"id": 31, "name": "Sirius", "lat": 37.275591, "lon": 9.881795}, {"id": 32, "name": "Peluxo", "lat": 37.278456, "lon": 9.88261}, {"id": 33, "name": "All In", "lat": 37.274851, "lon": 9.882138}, {"id": 34, "name": "Catalina", "lat": 37.27455139160156, "lon": 9.881322383880615}, {"id": 35, "name": "Spectre", "lat": 37.154828, "lon": 10.81913}, {"id": 37, "name": "Longhaul", "lat": 37.278306, "lon": 9.884561}, {"id": 38, "name": "La Pinya", "lat": 36.863271, "lon": 10.351716}, {"id": 39, "name": "Yulara", "lat": 37.276043, "lon": 9.881708}, {"id": 40, "name": "Isobella", "lat": 37.274648, "lon": 9.881773}, {"id": 41, "name": "Huga", "lat": 37.276, "lon": 9.881665}, {"id": 42, "name": "Oyster Lady", "lat": 36.863218, "lon": 10.35101}, {"id": 43, "name": "Marinette", "lat": 37.299056, "lon": 9.878081}, {"id": 44, "name": "Hio", "lat": 37.275968, "lon": 9.882095}, {"id": 45, "name": "Grande Blu", "lat": 36.670141, "lon": 15.114161}, {"id": 46, "name": "Aurora", "lat": 36.668081, "lon": 15.112938}, {"id": 47, "name": "Fair Lady", "lat": 36.66922, "lon": 15.11354}, {"id": 48, "name": "Paola I", "lat": 36.671408, "lon": 15.117316}, {"id": 49, "name": "Morgana", "lat": 36.66864, "lon": 15.11251}, {"id": 50, "name": "Mango", "lat": 36.668748, "lon": 15.113346}, {"id": 51, "name": "Luna Bark", "lat": 36.669798, "lon": 15.117208}, {"id": 52, "name": "Maria Cristina", "lat": 36.667535, "lon": 15.11457}, {"id": 53, "name": "Karma", "lat": 36.671075, "lon": 15.118431}, {"id": 55, "name": "Taigete", "lat": 36.670281, "lon": 15.113303}, {"id": 56, "name": "Wahoo", "lat": 36.669208, "lon": 15.115793}, {"id": 57, "name": "Snap", "lat": 36.669101, "lon": 15.112016}, {"id": 58, "name": "Selvaggia", "lat": 36.667675, "lon": 15.116973}, {"id": 59, "name": "Ghea", "lat": 36.668371, "lon": 15.114183}, {"id": 60, "name": "Otaria", "lat": 36.669756, "lon": 15.115556}, {"id": 61, "name": "Zefiro", "lat": 36.66938, "lon": 15.114741}, {"id": 62, "name": "Seulle", "lat": 36.667815, "lon": 15.115363}];
+const vesselModal = document.getElementById('vesselModal');
+const openVesselListBtn = document.getElementById('openVesselListBtn');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const vesselSearchInput = document.getElementById('vesselSearchInput');
+const vesselTableBody = document.getElementById('vesselTableBody');
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <script src="script.js"></script>
+openVesselListBtn.onclick = function() { vesselModal.style.display = 'flex'; renderVesselTable(vesselList); };
+closeModalBtn.onclick = function() { vesselModal.style.display = 'none'; };
+vesselModal.onclick = function(e) { if(e.target === vesselModal) vesselModal.style.display = 'none'; };
+
+function renderVesselTable(vessels) {
+    vesselTableBody.innerHTML = '';
+    vessels.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).forEach(function(vessel) {
+        var row = document.createElement('tr');
+        row.style.cursor = 'pointer';
+        row.innerHTML = '<td style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;">' + vessel.name + '</td>';
+        row.onclick = function() {
+            vesselModal.style.display = 'none';
+            // Usa la Map per trovare il marker
+            var marker = window._vesselMarkers.get(vessel.id);
+            if(marker) {
+                // Prima zooma
+                window._map.setView([vessel.lat, vessel.lon], 18);
+
+                // Aspetta che il zoom sia completato, poi apri il popup
+                setTimeout(function() {
+                    // Se il marker è in un cluster, sclusterizza definitivamente
+                    if(window._markerCluster && window._markerCluster.hasLayer && window._markerCluster.hasLayer(marker)) {
+                        window._markerCluster.removeLayer(marker);
+                        window._map.addLayer(marker);
+                        // Traccia che questo marker è stato estratto
+                        window._extractedMarkers.add(marker);
+                    }
+
+                    // Apri il popup e lascialo aperto
+                    marker.openPopup();
+                }, 500);
+            }
+        };
+        vesselTableBody.appendChild(row);
+    });
+}
+vesselSearchInput.onkeyup = function(e) {
+    var term = e.target.value.toLowerCase();
+    renderVesselTable(vesselList.filter(function(v){return v.name.toLowerCase().includes(term);}));
+};
+</script>
+    
+            <div class="folium-map" id="map_affbc6735955420a6d3dd5338ddd3c28" ></div>
+        
+    
+                        
+        <div style="position: absolute; bottom: 20px; left: 20px; z-index: 9999; background: white; color: black; padding: 5px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); font-size: 11px;">
+                <a href="https://globalsumudflotilla.org/tracker/" target="_blank" style="font-weight: bold; color: #1976D2; text-decoration: underline;">Source</a>
+                <span style="margin-left: 8px;">(data map update: 2025-09-14 10:34:37 UTC)</span>
+        </div>
+
+                        
 </body>
+<script>
+    
+    
+            var map_affbc6735955420a6d3dd5338ddd3c28 = L.map(
+                "map_affbc6735955420a6d3dd5338ddd3c28",
+                {
+                    center: [0.0, 0.0],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 2,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_5afda5afa5b375c80368ce1f8e96273d = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_5afda5afa5b375c80368ce1f8e96273d.addTo(map_affbc6735955420a6d3dd5338ddd3c28);
+        
+    
+            var marker_cluster_431ec4af57fdc46ac3457c5bd070fffb = L.markerClusterGroup(
+                {
+}
+            );
+        
+    
+            var marker_98678e273bd2c9a05522fe4006ae2673 = L.marker(
+                [37.278531, 9.883533],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_9f8b3ad947051c76fb4f907f1cd7b4dd = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_5190568ba746c9456db3f593957fcc34 = $(`<div id="html_5190568ba746c9456db3f593957fcc34" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Alma</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-12 01:43:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_9f8b3ad947051c76fb4f907f1cd7b4dd.setContent(html_5190568ba746c9456db3f593957fcc34);
+            
+        
+
+        marker_98678e273bd2c9a05522fe4006ae2673.bindPopup(popup_9f8b3ad947051c76fb4f907f1cd7b4dd)
+        ;
+
+        
+    
+    
+            var marker_bdb724426d9e91e0b7bab4acb0643982 = L.marker(
+                [37.278355, 9.8843613],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_f736a992b43281b2c0d3c8b3fc9fb568 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_3fcdc735f4e005c0fa57360180163755 = $(`<div id="html_3fcdc735f4e005c0fa57360180163755" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Estrella Y Manuel</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 09:21:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_f736a992b43281b2c0d3c8b3fc9fb568.setContent(html_3fcdc735f4e005c0fa57360180163755);
+            
+        
+
+        marker_bdb724426d9e91e0b7bab4acb0643982.bindPopup(popup_f736a992b43281b2c0d3c8b3fc9fb568)
+        ;
+
+        
+    
+    
+            var marker_9441d5636594b0d03de85fe842f5c1c3 = L.marker(
+                [37.275276, 9.881937],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_4a6549b214a95eb1312ba6adf12e73a1 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_78277e761d18bc1ae429823c1b02daaa = $(`<div id="html_78277e761d18bc1ae429823c1b02daaa" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Adara</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 08:23:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_4a6549b214a95eb1312ba6adf12e73a1.setContent(html_78277e761d18bc1ae429823c1b02daaa);
+            
+        
+
+        marker_9441d5636594b0d03de85fe842f5c1c3.bindPopup(popup_4a6549b214a95eb1312ba6adf12e73a1)
+        ;
+
+        
+    
+    
+            var marker_09bea109479981b31e393bb01a678cd2 = L.marker(
+                [37.278339, 9.8824682],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_5e42ad320fc629b5fe649855c09215f6 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_8f1afafe636073fedaff5173cfade404 = $(`<div id="html_8f1afafe636073fedaff5173cfade404" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Mikeno</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-13 08:28:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_5e42ad320fc629b5fe649855c09215f6.setContent(html_8f1afafe636073fedaff5173cfade404);
+            
+        
+
+        marker_09bea109479981b31e393bb01a678cd2.bindPopup(popup_5e42ad320fc629b5fe649855c09215f6)
+        ;
+
+        
+    
+    
+            var marker_ef5afdd5c85f7a3ca295e1ebfa34d587 = L.marker(
+                [37.278543, 9.88306],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_3d54dccb97aa870c296b8045fe505fed = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_0ddbd85770198cb62ed62202947cefad = $(`<div id="html_0ddbd85770198cb62ed62202947cefad" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Jeannot III</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 06:23:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_3d54dccb97aa870c296b8045fe505fed.setContent(html_0ddbd85770198cb62ed62202947cefad);
+            
+        
+
+        marker_ef5afdd5c85f7a3ca295e1ebfa34d587.bindPopup(popup_3d54dccb97aa870c296b8045fe505fed)
+        ;
+
+        
+    
+    
+            var marker_987aa5bf3ec919b3efa9a8cd1e54efbc = L.marker(
+                [36.898945, 10.354295],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_77a9a2c9787a4016422d6f9f28c43711 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_46529d1a895c7f9510633df4a8f56861 = $(`<div id="html_46529d1a895c7f9510633df4a8f56861" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Ohwayla</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-11 11:17:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_77a9a2c9787a4016422d6f9f28c43711.setContent(html_46529d1a895c7f9510633df4a8f56861);
+            
+        
+
+        marker_987aa5bf3ec919b3efa9a8cd1e54efbc.bindPopup(popup_77a9a2c9787a4016422d6f9f28c43711)
+        ;
+
+        
+    
+    
+            var marker_da3c0a652b05d5c87300a8689019ea89 = L.marker(
+                [37.278425, 9.882438],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_365e18a3de7326181a4f96c304beedf4 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_8c291afc4f40cc78a0022d4b59db553c = $(`<div id="html_8c291afc4f40cc78a0022d4b59db553c" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Inana</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 01:17:45</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_365e18a3de7326181a4f96c304beedf4.setContent(html_8c291afc4f40cc78a0022d4b59db553c);
+            
+        
+
+        marker_da3c0a652b05d5c87300a8689019ea89.bindPopup(popup_365e18a3de7326181a4f96c304beedf4)
+        ;
+
+        
+    
+    
+            var marker_c289444e46007a7d0a411f8e82e0d485 = L.marker(
+                [37.279003, 9.882996],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_d4aa2860b529735380c18bc5919cfa79 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_b809aff5e320144f476fbd7f8dd0d6e9 = $(`<div id="html_b809aff5e320144f476fbd7f8dd0d6e9" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Familia Madeira</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 08:09:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_d4aa2860b529735380c18bc5919cfa79.setContent(html_b809aff5e320144f476fbd7f8dd0d6e9);
+            
+        
+
+        marker_c289444e46007a7d0a411f8e82e0d485.bindPopup(popup_d4aa2860b529735380c18bc5919cfa79)
+        ;
+
+        
+    
+    
+            var marker_df1037327161396beed29d9af2a898b7 = L.marker(
+                [37.275591, 9.881795],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_77062fae862b8e3689087abe9958bca8 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_3afd3ce2676452c3455ce71378a358e3 = $(`<div id="html_3afd3ce2676452c3455ce71378a358e3" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Sirius</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 08:09:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_77062fae862b8e3689087abe9958bca8.setContent(html_3afd3ce2676452c3455ce71378a358e3);
+            
+        
+
+        marker_df1037327161396beed29d9af2a898b7.bindPopup(popup_77062fae862b8e3689087abe9958bca8)
+        ;
+
+        
+    
+    
+            var marker_b613f3327cfe8bce7fabe9dbadb1c867 = L.marker(
+                [37.278456, 9.88261],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_6fad6014828e045a319f8252ecd06d44 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_c58357440d38a6ebe2921a4e12f87368 = $(`<div id="html_c58357440d38a6ebe2921a4e12f87368" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Peluxo</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 09:24:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_6fad6014828e045a319f8252ecd06d44.setContent(html_c58357440d38a6ebe2921a4e12f87368);
+            
+        
+
+        marker_b613f3327cfe8bce7fabe9dbadb1c867.bindPopup(popup_6fad6014828e045a319f8252ecd06d44)
+        ;
+
+        
+    
+    
+            var marker_1c5e9314c440ea58f20b2f9f3381eb17 = L.marker(
+                [37.274851, 9.882138],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_05221bea913afb3b1b0e7cdbc16de10b = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_f237f22be63a9475ebf2057bcf456d19 = $(`<div id="html_f237f22be63a9475ebf2057bcf456d19" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">All In</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 10:44:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_05221bea913afb3b1b0e7cdbc16de10b.setContent(html_f237f22be63a9475ebf2057bcf456d19);
+            
+        
+
+        marker_1c5e9314c440ea58f20b2f9f3381eb17.bindPopup(popup_05221bea913afb3b1b0e7cdbc16de10b)
+        ;
+
+        
+    
+    
+            var marker_96fcfb5808e63783f933d049bc1f4e8a = L.marker(
+                [37.27455139160156, 9.881322383880615],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_64239912348c898a6a72f45c3f27de46 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_d3cc60b0113d184e3ef88ae4a021f48d = $(`<div id="html_d3cc60b0113d184e3ef88ae4a021f48d" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Catalina</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:06:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_64239912348c898a6a72f45c3f27de46.setContent(html_d3cc60b0113d184e3ef88ae4a021f48d);
+            
+        
+
+        marker_96fcfb5808e63783f933d049bc1f4e8a.bindPopup(popup_64239912348c898a6a72f45c3f27de46)
+        ;
+
+        
+    
+    
+            var marker_d31cd1549c64760fc183d672c83b2c2b = L.marker(
+                [37.154828, 10.81913],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_4d2a60d269218d8fdd8d87a5061fead4 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_722e99e0c3e4606a228e4422dfdd06a5 = $(`<div id="html_722e99e0c3e4606a228e4422dfdd06a5" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Spectre</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 10:31:45</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_4d2a60d269218d8fdd8d87a5061fead4.setContent(html_722e99e0c3e4606a228e4422dfdd06a5);
+            
+        
+
+        marker_d31cd1549c64760fc183d672c83b2c2b.bindPopup(popup_4d2a60d269218d8fdd8d87a5061fead4)
+        ;
+
+        
+    
+    
+            var marker_8a9c48d80fdd94b9ee198776df330b89 = L.marker(
+                [37.278306, 9.884561],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_15a95dc8663a952f7b411a9b1ffe36ae = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_6a7d0979302c2f08e283e7319ad54a7e = $(`<div id="html_6a7d0979302c2f08e283e7319ad54a7e" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Longhaul</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 10:39:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_15a95dc8663a952f7b411a9b1ffe36ae.setContent(html_6a7d0979302c2f08e283e7319ad54a7e);
+            
+        
+
+        marker_8a9c48d80fdd94b9ee198776df330b89.bindPopup(popup_15a95dc8663a952f7b411a9b1ffe36ae)
+        ;
+
+        
+    
+    
+            var marker_bfecfeae211c009b3bfd2d76da94bfeb = L.marker(
+                [36.863271, 10.351716],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_7418393efebeef4bdd5c766d3e812f42 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_2fafeed8f7ea1f64f7d921d4bc2e7182 = $(`<div id="html_2fafeed8f7ea1f64f7d921d4bc2e7182" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">La Pinya</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-09 01:57:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_7418393efebeef4bdd5c766d3e812f42.setContent(html_2fafeed8f7ea1f64f7d921d4bc2e7182);
+            
+        
+
+        marker_bfecfeae211c009b3bfd2d76da94bfeb.bindPopup(popup_7418393efebeef4bdd5c766d3e812f42)
+        ;
+
+        
+    
+    
+            var marker_efd5c33f19d10d19388083e0d27509d3 = L.marker(
+                [37.276043, 9.881708],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_405f6e9444e565e69f515a45d6f022da = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_b6414647191bccecb12fbc36f6012dce = $(`<div id="html_b6414647191bccecb12fbc36f6012dce" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Yulara</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 08:57:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_405f6e9444e565e69f515a45d6f022da.setContent(html_b6414647191bccecb12fbc36f6012dce);
+            
+        
+
+        marker_efd5c33f19d10d19388083e0d27509d3.bindPopup(popup_405f6e9444e565e69f515a45d6f022da)
+        ;
+
+        
+    
+    
+            var marker_172531146a293bb62194b6b2e64ad008 = L.marker(
+                [37.274648, 9.881773],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_c36ae6434314ff14bb68b05664f885f1 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_291d5e5df40b1503523526c19ef7a59f = $(`<div id="html_291d5e5df40b1503523526c19ef7a59f" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Isobella</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-13 11:20:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_c36ae6434314ff14bb68b05664f885f1.setContent(html_291d5e5df40b1503523526c19ef7a59f);
+            
+        
+
+        marker_172531146a293bb62194b6b2e64ad008.bindPopup(popup_c36ae6434314ff14bb68b05664f885f1)
+        ;
+
+        
+    
+    
+            var marker_4501c7a36a0eeab05e73b03ac1d82fe2 = L.marker(
+                [37.276, 9.881665],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_f28d3138dd37969ebe7a3740a9ea5300 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_2a39633b65228bad219b06a0ffb7a631 = $(`<div id="html_2a39633b65228bad219b06a0ffb7a631" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Huga</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:14:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_f28d3138dd37969ebe7a3740a9ea5300.setContent(html_2a39633b65228bad219b06a0ffb7a631);
+            
+        
+
+        marker_4501c7a36a0eeab05e73b03ac1d82fe2.bindPopup(popup_f28d3138dd37969ebe7a3740a9ea5300)
+        ;
+
+        
+    
+    
+            var marker_7092fdc9d4c21d40a717b772427d5d65 = L.marker(
+                [36.863218, 10.35101],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_52e5fc19d7bcd34fba616351185a56c9 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_f868f532f4856697d8f820a202d96867 = $(`<div id="html_f868f532f4856697d8f820a202d96867" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Oyster Lady</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-10 07:22:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_52e5fc19d7bcd34fba616351185a56c9.setContent(html_f868f532f4856697d8f820a202d96867);
+            
+        
+
+        marker_7092fdc9d4c21d40a717b772427d5d65.bindPopup(popup_52e5fc19d7bcd34fba616351185a56c9)
+        ;
+
+        
+    
+    
+            var marker_cfbe54774e98968b30ea636393ae8413 = L.marker(
+                [37.299056, 9.878081],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_5934bcb81ce62eed4183aecefa2d36ae = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_91ce330c3081e82de03b76d61b49533f = $(`<div id="html_91ce330c3081e82de03b76d61b49533f" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Marinette</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 08:08:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_5934bcb81ce62eed4183aecefa2d36ae.setContent(html_91ce330c3081e82de03b76d61b49533f);
+            
+        
+
+        marker_cfbe54774e98968b30ea636393ae8413.bindPopup(popup_5934bcb81ce62eed4183aecefa2d36ae)
+        ;
+
+        
+    
+    
+            var marker_92b1f7b55272c96662828ed0e845abae = L.marker(
+                [37.275968, 9.882095],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_6c0d8708d2b30958c01fd629ccfa7628 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_6c715fd1a596ccecf9d905b2428b5475 = $(`<div id="html_6c715fd1a596ccecf9d905b2428b5475" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Hio</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 10:16:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_6c0d8708d2b30958c01fd629ccfa7628.setContent(html_6c715fd1a596ccecf9d905b2428b5475);
+            
+        
+
+        marker_92b1f7b55272c96662828ed0e845abae.bindPopup(popup_6c0d8708d2b30958c01fd629ccfa7628)
+        ;
+
+        
+    
+    
+            var marker_b420ce3eee1b2a1a9af782ba71fb5a86 = L.marker(
+                [36.670141, 15.114161],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_a2749bc6f197c324760cf2b87607dd21 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_27fa7689b27b5c9e5e0ca042fcf1f414 = $(`<div id="html_27fa7689b27b5c9e5e0ca042fcf1f414" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Grande Blu</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:29:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_a2749bc6f197c324760cf2b87607dd21.setContent(html_27fa7689b27b5c9e5e0ca042fcf1f414);
+            
+        
+
+        marker_b420ce3eee1b2a1a9af782ba71fb5a86.bindPopup(popup_a2749bc6f197c324760cf2b87607dd21)
+        ;
+
+        
+    
+    
+            var marker_675b250f04dfb4915a6913701a270eae = L.marker(
+                [36.668081, 15.112938],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_7ec43507db82975f94bc64e004590d9d = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_b355950a85a5fb1e21bb9306c796e633 = $(`<div id="html_b355950a85a5fb1e21bb9306c796e633" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Aurora</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:15:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_7ec43507db82975f94bc64e004590d9d.setContent(html_b355950a85a5fb1e21bb9306c796e633);
+            
+        
+
+        marker_675b250f04dfb4915a6913701a270eae.bindPopup(popup_7ec43507db82975f94bc64e004590d9d)
+        ;
+
+        
+    
+    
+            var marker_4ab3e00aa66931eb873ebb66df89eced = L.marker(
+                [36.66922, 15.11354],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_49b2d7c8bcd6f51f29691d6d805c3793 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_17ceb3d37266a7cfd36184f6e68aa3d0 = $(`<div id="html_17ceb3d37266a7cfd36184f6e68aa3d0" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Fair Lady</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:33:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_49b2d7c8bcd6f51f29691d6d805c3793.setContent(html_17ceb3d37266a7cfd36184f6e68aa3d0);
+            
+        
+
+        marker_4ab3e00aa66931eb873ebb66df89eced.bindPopup(popup_49b2d7c8bcd6f51f29691d6d805c3793)
+        ;
+
+        
+    
+    
+            var marker_906ea6b12224c3bcd2a29b7407edee00 = L.marker(
+                [36.671408, 15.117316],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_f5cb6ac25f388c86247cc2f79abf1220 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_1577e804c387bd48ca4b767c33a341cb = $(`<div id="html_1577e804c387bd48ca4b767c33a341cb" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Paola I</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:24:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_f5cb6ac25f388c86247cc2f79abf1220.setContent(html_1577e804c387bd48ca4b767c33a341cb);
+            
+        
+
+        marker_906ea6b12224c3bcd2a29b7407edee00.bindPopup(popup_f5cb6ac25f388c86247cc2f79abf1220)
+        ;
+
+        
+    
+    
+            var marker_19b05fa5e79292036ef61cf171da6240 = L.marker(
+                [36.66864, 15.11251],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_50e645570e58d1ec1ed59c9eb88aa032 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_51208c67c522260c70c152ae84a17b29 = $(`<div id="html_51208c67c522260c70c152ae84a17b29" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Morgana</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:07:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_50e645570e58d1ec1ed59c9eb88aa032.setContent(html_51208c67c522260c70c152ae84a17b29);
+            
+        
+
+        marker_19b05fa5e79292036ef61cf171da6240.bindPopup(popup_50e645570e58d1ec1ed59c9eb88aa032)
+        ;
+
+        
+    
+    
+            var marker_f89e53a3eaf8dc501622462cfa45e356 = L.marker(
+                [36.668748, 15.113346],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_b09072d17ab0bea4db1f982021f3035f = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_3612bc2e5a906fe9357b0ff963f6bec2 = $(`<div id="html_3612bc2e5a906fe9357b0ff963f6bec2" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Mango</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:23:45</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_b09072d17ab0bea4db1f982021f3035f.setContent(html_3612bc2e5a906fe9357b0ff963f6bec2);
+            
+        
+
+        marker_f89e53a3eaf8dc501622462cfa45e356.bindPopup(popup_b09072d17ab0bea4db1f982021f3035f)
+        ;
+
+        
+    
+    
+            var marker_862f32f630e208af8c52519c66dca64f = L.marker(
+                [36.669798, 15.117208],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_3378a04b52450060bb6651745c7d50fe = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_0d6c63ba19eb86d9cdefb108b9a1889a = $(`<div id="html_0d6c63ba19eb86d9cdefb108b9a1889a" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Luna Bark</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:56:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_3378a04b52450060bb6651745c7d50fe.setContent(html_0d6c63ba19eb86d9cdefb108b9a1889a);
+            
+        
+
+        marker_862f32f630e208af8c52519c66dca64f.bindPopup(popup_3378a04b52450060bb6651745c7d50fe)
+        ;
+
+        
+    
+    
+            var marker_9005806d942dd918e90d05158211c8e1 = L.marker(
+                [36.667535, 15.11457],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_279b9074e42988e9ececfa09884fa24e = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_5276082147bb3e65d00f76e61acd4c10 = $(`<div id="html_5276082147bb3e65d00f76e61acd4c10" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Maria Cristina</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 09:35:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_279b9074e42988e9ececfa09884fa24e.setContent(html_5276082147bb3e65d00f76e61acd4c10);
+            
+        
+
+        marker_9005806d942dd918e90d05158211c8e1.bindPopup(popup_279b9074e42988e9ececfa09884fa24e)
+        ;
+
+        
+    
+    
+            var marker_a02075ed512267485faaca3c677d811d = L.marker(
+                [36.671075, 15.118431],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_acaaf03398b8cc77e7f4e74aa2fafa23 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_924e5087412a240d3d4207b88f20799c = $(`<div id="html_924e5087412a240d3d4207b88f20799c" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Karma</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:22:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_acaaf03398b8cc77e7f4e74aa2fafa23.setContent(html_924e5087412a240d3d4207b88f20799c);
+            
+        
+
+        marker_a02075ed512267485faaca3c677d811d.bindPopup(popup_acaaf03398b8cc77e7f4e74aa2fafa23)
+        ;
+
+        
+    
+    
+            var marker_7826c6bc0b42f6d56782ce7e32c79d00 = L.marker(
+                [36.670281, 15.113303],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_1ca2dbfbe0d1a69d8c808b9407e3e445 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_08e6e4782a30f9ff6a8d60015e3eb618 = $(`<div id="html_08e6e4782a30f9ff6a8d60015e3eb618" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Taigete</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 10:43:45</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_1ca2dbfbe0d1a69d8c808b9407e3e445.setContent(html_08e6e4782a30f9ff6a8d60015e3eb618);
+            
+        
+
+        marker_7826c6bc0b42f6d56782ce7e32c79d00.bindPopup(popup_1ca2dbfbe0d1a69d8c808b9407e3e445)
+        ;
+
+        
+    
+    
+            var marker_d98b892244990f41bf22f5d430b52bc1 = L.marker(
+                [36.669208, 15.115793],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_309cd4c3a96046e7764fe9b6308ce21b = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_6cd909757edbb38e802a86ff09848f2d = $(`<div id="html_6cd909757edbb38e802a86ff09848f2d" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Wahoo</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 09:17:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_309cd4c3a96046e7764fe9b6308ce21b.setContent(html_6cd909757edbb38e802a86ff09848f2d);
+            
+        
+
+        marker_d98b892244990f41bf22f5d430b52bc1.bindPopup(popup_309cd4c3a96046e7764fe9b6308ce21b)
+        ;
+
+        
+    
+    
+            var marker_d512227e9b60758c07e9cf4096de9a64 = L.marker(
+                [36.669101, 15.112016],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_fcb1ff67e0ec2d64ae3c3244fbbc6e56 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_db9303aaa8a90a46e87390cfd89d3d01 = $(`<div id="html_db9303aaa8a90a46e87390cfd89d3d01" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Snap</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:10:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_fcb1ff67e0ec2d64ae3c3244fbbc6e56.setContent(html_db9303aaa8a90a46e87390cfd89d3d01);
+            
+        
+
+        marker_d512227e9b60758c07e9cf4096de9a64.bindPopup(popup_fcb1ff67e0ec2d64ae3c3244fbbc6e56)
+        ;
+
+        
+    
+    
+            var marker_374db2377eb0c9ba7b5b15616376e6ab = L.marker(
+                [36.667675, 15.116973],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_2761482b1ef4301a64c7c212d1fbf13f = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_20efcd88fef01bf033b6ac62d6c62a65 = $(`<div id="html_20efcd88fef01bf033b6ac62d6c62a65" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Selvaggia</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 09:29:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_2761482b1ef4301a64c7c212d1fbf13f.setContent(html_20efcd88fef01bf033b6ac62d6c62a65);
+            
+        
+
+        marker_374db2377eb0c9ba7b5b15616376e6ab.bindPopup(popup_2761482b1ef4301a64c7c212d1fbf13f)
+        ;
+
+        
+    
+    
+            var marker_6b5164b875f46754d61978a671b8e664 = L.marker(
+                [36.668371, 15.114183],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_a0f8fb3a638f029aee0292795bb995b1 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_1ef97187d631d713a703fa463574432a = $(`<div id="html_1ef97187d631d713a703fa463574432a" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Ghea</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 09:24:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_a0f8fb3a638f029aee0292795bb995b1.setContent(html_1ef97187d631d713a703fa463574432a);
+            
+        
+
+        marker_6b5164b875f46754d61978a671b8e664.bindPopup(popup_a0f8fb3a638f029aee0292795bb995b1)
+        ;
+
+        
+    
+    
+            var marker_4b5660d5db79e68f6d4236a8d4cffc95 = L.marker(
+                [36.669756, 15.115556],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_b651a03a7627691f0314ccde7bfc96d8 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_d72ef17055354ec1c9f674f70fe843c2 = $(`<div id="html_d72ef17055354ec1c9f674f70fe843c2" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Otaria</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:24:30</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_b651a03a7627691f0314ccde7bfc96d8.setContent(html_d72ef17055354ec1c9f674f70fe843c2);
+            
+        
+
+        marker_4b5660d5db79e68f6d4236a8d4cffc95.bindPopup(popup_b651a03a7627691f0314ccde7bfc96d8)
+        ;
+
+        
+    
+    
+            var marker_e48580ad0132be5018995747ae83b62e = L.marker(
+                [36.66938, 15.114741],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_513bd6bfc536e5fc5ce4a71f51bb9c59 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_1f28787585e59e0907b2e2613e232e30 = $(`<div id="html_1f28787585e59e0907b2e2613e232e30" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Zefiro</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:18:00</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_513bd6bfc536e5fc5ce4a71f51bb9c59.setContent(html_1f28787585e59e0907b2e2613e232e30);
+            
+        
+
+        marker_e48580ad0132be5018995747ae83b62e.bindPopup(popup_513bd6bfc536e5fc5ce4a71f51bb9c59)
+        ;
+
+        
+    
+    
+            var marker_9d16e936d9013dd2e019a3606bc31f11 = L.marker(
+                [36.667815, 15.115363],
+                {
+}
+            ).addTo(marker_cluster_431ec4af57fdc46ac3457c5bd070fffb);
+        
+    
+        var popup_357b00ecc201e584a59f546dfcda1421 = L.popup({
+  "maxWidth": 300,
+});
+
+        
+            
+                var html_b638da31302494628edc9a16afba51d0 = $(`<div id="html_b638da31302494628edc9a16afba51d0" style="width: 100.0%; height: 100.0%;">             <div class="p-2">                 <h3 style="font-size:1.125rem;font-weight:bold;">Seulle</h3>                 <p style="font-size:0.875rem;color:#4B5563;">Last update: 2025-09-14 07:34:15</p>                 <div style="margin-top:0.5rem;font-size:0.875rem;">                     <p><span style="font-weight:600;">Status:</span> sailing</p>                     <p><span style="font-weight:600;">Type:</span> vessel</p>                 </div>             </div>         </div>`)[0];
+                popup_357b00ecc201e584a59f546dfcda1421.setContent(html_b638da31302494628edc9a16afba51d0);
+            
+        
+
+        marker_9d16e936d9013dd2e019a3606bc31f11.bindPopup(popup_357b00ecc201e584a59f546dfcda1421)
+        ;
+
+        
+    
+    
+            marker_cluster_431ec4af57fdc46ac3457c5bd070fffb.addTo(map_affbc6735955420a6d3dd5338ddd3c28);
+        
+    
+            var tile_layer_cc55ebc773cfa189d4e23b9aadf859c5 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {"attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors", "detect_retina": false, "max_native_zoom": 19, "max_zoom": 19, "min_zoom": 0, "no_wrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            );
+            var mini_map_e5a43404537567164891e9736de0f88f = new L.Control.MiniMap(
+                tile_layer_cc55ebc773cfa189d4e23b9aadf859c5,
+                {
+  "position": "bottomright",
+  "width": 150,
+  "height": 150,
+  "collapsedWidth": 25,
+  "collapsedHeight": 25,
+  "zoomLevelOffset": -5,
+  "centerFixed": false,
+  "zoomAnimation": false,
+  "toggleDisplay": false,
+  "autoToggleDisplay": false,
+  "minimized": false,
+}
+            );
+            map_affbc6735955420a6d3dd5338ddd3c28.addControl(mini_map_e5a43404537567164891e9736de0f88f);
+        
+    
+            var measure_control_372c5470177f1cb46d0a7b2b71422d44 = new L.Control.Measure(
+                {
+  "position": "topright",
+  "primaryLengthUnit": "meters",
+  "secondaryLengthUnit": "miles",
+  "primaryAreaUnit": "sqmeters",
+  "secondaryAreaUnit": "acres",
+});
+            map_affbc6735955420a6d3dd5338ddd3c28.addControl(measure_control_372c5470177f1cb46d0a7b2b71422d44);
+
+            // Workaround for using this plugin with Leaflet>=1.8.0
+            // https://github.com/ljagis/leaflet-measure/issues/171
+            L.Control.Measure.include({
+                _setCaptureMarkerIcon: function () {
+                    // disable autopan
+                    this._captureMarker.options.autoPanOnFocus = false;
+                    // default function
+                    this._captureMarker.setIcon(
+                        L.divIcon({
+                            iconSize: this._map.getSize().multiplyBy(2)
+                        })
+                    );
+                },
+            });
+
+        
+    
+            map_affbc6735955420a6d3dd5338ddd3c28.fitBounds(
+                [[36.667535, 9.878081], [37.299056, 15.118431]],
+                {}
+            );
+        
+</script>
 </html>

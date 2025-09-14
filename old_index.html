@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sumud Flotilla Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div id="map"></div>
+
+    
+
+    <div id="vesselModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-[1000] hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Vessel List</h2>
+                <button id="closeModalBtn" class="text-gray-600 hover:text-gray-900">&times;</button>
+            </div>
+            <input type="text" id="vesselSearchInput" placeholder="Search vessels..." class="w-full p-2 border border-gray-300 rounded-md mb-4">
+            <div class="max-h-80 overflow-y-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-200 text-left text-sm font-semibold text-gray-600">Vessel Name</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vesselTableBody">
+                        <!-- Vessel rows will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
