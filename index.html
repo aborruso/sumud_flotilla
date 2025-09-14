@@ -34,6 +34,7 @@
   <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
     <button id="zoomToFitBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Zoom to fit</button>
     <button id="openVesselListBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Vessels List</button>
+    <button id="openInfoBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Info</button>
   </div>
 
   <!-- Modale lista vascelli -->
@@ -50,6 +51,24 @@
       </div>
     </div>
   </div>
+
+    <!-- Modale info -->
+    <div id="infoModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-60 hidden">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-8 relative">
+        <button id="closeInfoModalBtn" class="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+        <h2 class="text-xl font-bold mb-4">About the <a href=\"https://globalsumudflotilla.org/\" target=\"_blank\" class=\"text-blue-700 underline\">Sumud Flotilla</a></h2>
+        <div class="text-gray-800 text-base space-y-4">
+          <p><a href="https://globalsumudflotilla.org/" target="_blank" class="text-blue-700 underline font-semibold">Sumud Flotilla</a> is a coalition of everyday people—organizers, humanitarians, doctors, artists, clergy, lawyers, and seafarers—who believe in human dignity and the power of nonviolent action.</p>
+          <p>In June, a globally coordinated mobilization was launched by land, sea, and air. In Summer, the coalition returns with a unified strategy: one goal and global coordination like never before.</p>
+          <p>These efforts build on decades of Palestinian resistance and international solidarity. Though participants belong to different nations, faiths, and political beliefs, they are united by a single truth: the siege and genocide must end.</p>
+          <p>The coalition is independent, international, and unaffiliated with any government or political party. Its allegiance is to justice, freedom, and the sanctity of human life.</p>
+        </div>
+        <hr class="my-6">
+        <div class="text-gray-700 text-sm mt-4">
+          This map reads data from the <a href="https://globalsumudflotilla.org/tracker/" target="_blank" class="text-blue-700 underline font-semibold">official tracker</a> and updates every 30 minutes.
+        </div>
+      </div>
+    </div>
 
   <!-- Source box -->
   <div id="sourceBox" class="fixed bottom-4 left-4 z-20 bg-white text-black px-3 py-1 rounded shadow text-xs flex items-center hidden sm:flex">
@@ -235,6 +254,14 @@
         vesselTableBody.appendChild(row);
       });
     }
+
+      // Info Modal
+      const infoModal = document.getElementById('infoModal');
+      const openInfoBtn = document.getElementById('openInfoBtn');
+      const closeInfoModalBtn = document.getElementById('closeInfoModalBtn');
+      openInfoBtn.onclick = () => infoModal.classList.remove('hidden');
+      closeInfoModalBtn.onclick = () => infoModal.classList.add('hidden');
+      infoModal.onclick = e => { if (e.target === infoModal) infoModal.classList.add('hidden'); };
 
     // Zoom to fit
     function zoomToFit() {
