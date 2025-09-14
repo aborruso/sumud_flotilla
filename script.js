@@ -13,7 +13,11 @@ function updateURL() {
 map.on('moveend', updateURL);
 map.on('zoomend', updateURL);
 
-fetch('vessels.json')
+const dataUrl = window.location.hostname === 'aborruso.github.io'
+    ? 'https://proxy.andybandy.it/?url=https://flotilla-orpin.vercel.app/api/vessels'
+    : 'vessels.json';
+
+fetch(dataUrl)
     .then(response => response.json())
     .then(data => {
         const markers = L.markerClusterGroup();
@@ -55,6 +59,17 @@ fetch('vessels.json')
             }
         });
         new zoomToFitButton({ position: 'topright' }).addTo(map);
+
+        const sourceLink = L.Control.extend({
+            onAdd: function(map) {
+                const link = L.DomUtil.create('a', 'bg-white text-black p-2 rounded-md shadow-md cursor-pointer');
+                link.href = 'https://globalsumudflotilla.org/tracker/';
+                link.innerHTML = 'Source';
+                link.target = '_blank';
+                return link;
+            }
+        });
+        new sourceLink({ position: 'bottomleft' }).addTo(map);
 
         const hash = window.location.hash;
         if (hash) {
