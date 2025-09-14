@@ -112,7 +112,8 @@ sumud_flotilla/
 ├── style.css               # CSS styles (Tailwind)
 ├── vessels.json            # Vessel data cache
 ├── last_updated.txt        # Last update timestamp
-├── PRD.md               # This document
+├── PRD.md                  # Original document (Italian)
+├── PRD_EN.md               # This document (English)
 ```
 
 ## Symbolic Meaning
