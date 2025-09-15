@@ -21,6 +21,8 @@
   <!-- MapLibre GL JS (jsDelivr) -->
   <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+  <!-- html2canvas for screenshot fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -411,10 +413,9 @@
       const downloadImage = document.getElementById('downloadImage');
       const imageStatus = document.getElementById('imageStatus');
 
-      // Check if browser is Chrome-based (Chrome, Chromium only - Edge has issues)
-      function isChromeBasedBrowser() {
+      // Check if browser supports canvas capture (Chrome, Chromium only)
+      function supportsCanvasCapture() {
         const userAgent = navigator.userAgent;
-        // Only allow Chrome and Chromium, exclude Edge
         return (userAgent.includes('Chrome') || userAgent.includes('Chromium')) && !userAgent.includes('Edg');
       }
 
@@ -424,11 +425,10 @@
                (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
       }
 
-      // Hide share image button on non-Chrome browsers or mobile devices
-      if (!isChromeBasedBrowser() || isMobileDevice()) {
+      // Hide share image button only on mobile devices (desktop browsers will use html2canvas fallback)
+      if (isMobileDevice()) {
         shareImageBtn.style.display = 'none';
-        const reason = !isChromeBasedBrowser() ? 'Chrome-based browser required' : 'Not supported on mobile devices';
-        console.log('Share map image feature disabled:', reason);
+        console.log('Share map image feature disabled: Not supported on mobile devices');
       }
 
       // Utility: convert dataURL to Blob
@@ -476,94 +476,111 @@
 
         try {
           // Start progress simulation
-          updateProgress(10, 'Preparing canvas...');
+          updateProgress(10, 'Preparing capture...');
           imageLoadingText.textContent = 'Generating image…';
 
-          // Timeout handler (15 seconds)
+          // Timeout handler (20 seconds for html2canvas)
           timeoutId = setTimeout(() => {
             clearInterval(progressInterval);
             showError(
               'Image generation timed out.',
               'Try zooming out or waiting for map tiles to load completely before generating the image.'
             );
-          }, 15000);
+          }, 20000);
 
           // Progress simulation
           progressInterval = setInterval(() => {
             if (progressValue < 80) {
               progressValue += Math.random() * 15;
               updateProgress(progressValue, progressValue < 30 ? 'Loading map tiles...' :
-                            progressValue < 60 ? 'Rendering canvas...' : 'Converting to image...');
+                            progressValue < 60 ? 'Rendering view...' : 'Converting to image...');
             }
           }, 200);
 
           updateProgress(20, 'Loading map tiles...');
 
-          // Wait for map to be idle (all tiles loaded)
-          await new Promise((resolve) => {
-            if (map.isStyleLoaded() && map.areTilesLoaded()) {
-              resolve();
-            } else {
-              const checkMap = () => {
+          let dataURL;
+          let captureMethod = 'html2canvas'; // Default fallback
+
+          // Try canvas capture first (Chrome/Chromium only)
+          if (supportsCanvasCapture()) {
+            try {
+              updateProgress(30, 'Trying canvas capture...');
+              captureMethod = 'canvas';
+
+              // Wait for map to be idle (all tiles loaded)
+              await new Promise((resolve) => {
                 if (map.isStyleLoaded() && map.areTilesLoaded()) {
-                  map.off('idle', checkMap);
                   resolve();
+                } else {
+                  const checkMap = () => {
+                    if (map.isStyleLoaded() && map.areTilesLoaded()) {
+                      map.off('idle', checkMap);
+                      resolve();
+                    }
+                  };
+                  map.on('idle', checkMap);
+                  setTimeout(resolve, 2000);
                 }
-              };
-              map.on('idle', checkMap);
-              // Fallback timeout
-              setTimeout(resolve, 2000);
+              });
+
+              updateProgress(50, 'Capturing canvas...');
+              const canvas = map.getCanvas();
+
+              if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                throw new Error('Canvas not ready');
+              }
+
+              const cloned = document.createElement('canvas');
+              cloned.width = canvas.width;
+              cloned.height = canvas.height;
+              const ctx = cloned.getContext('2d');
+
+              ctx.fillStyle = '#f0f9ff';
+              ctx.fillRect(0, 0, cloned.width, cloned.height);
+              ctx.drawImage(canvas, 0, 0);
+
+              const imageData = ctx.getImageData(0, 0, cloned.width, cloned.height);
+              const hasContent = Array.from(imageData.data).some((value, index) =>
+                index % 4 !== 3 && value !== 240 && value !== 249 && value !== 255
+              );
+
+              if (!hasContent) {
+                throw new Error('Canvas empty');
+              }
+
+              dataURL = cloned.toDataURL('image/png');
+              updateProgress(90, 'Canvas capture complete');
+            } catch (canvasError) {
+              console.log('Canvas capture failed, falling back to html2canvas:', canvasError.message);
+              captureMethod = 'html2canvas';
             }
-          });
-
-          updateProgress(50, 'Rendering canvas...');
-
-          // MapLibre provides getCanvas()
-          const canvas = map.getCanvas();
-
-          // Check if canvas is available and has content
-          if (!canvas || canvas.width === 0 || canvas.height === 0) {
-            throw new Error('Map canvas is not ready. Please wait for the map to load completely.');
           }
 
-          updateProgress(70, 'Cloning canvas...');
+          // Fallback to html2canvas for all browsers
+          if (!dataURL) {
+            updateProgress(40, 'Using html2canvas fallback...');
 
-          // Clone the canvas and add background if needed
-          const cloned = document.createElement('canvas');
-          cloned.width = canvas.width;
-          cloned.height = canvas.height;
-          const ctx = cloned.getContext('2d');
+            // Wait a bit for map to settle
+            await new Promise(r => setTimeout(r, 1000));
 
-          // Add a background color to avoid transparent/white areas
-          ctx.fillStyle = '#f0f9ff'; // Light blue background
-          ctx.fillRect(0, 0, cloned.width, cloned.height);
+            updateProgress(60, 'Capturing page...');
 
-          // Check for canvas tainting (CORS issues)
-          try {
-            ctx.drawImage(canvas, 0, 0);
-            updateProgress(90, 'Converting to image...');
+            // Use html2canvas to capture the entire map div
+            const canvas = await html2canvas(document.getElementById('map'), {
+              useCORS: true,
+              allowTaint: false,
+              backgroundColor: '#f0f9ff',
+              scale: 1,
+              logging: false,
+              width: document.getElementById('map').offsetWidth,
+              height: document.getElementById('map').offsetHeight
+            });
 
-            // Check if canvas actually has map content (not just background)
-            const imageData = ctx.getImageData(0, 0, cloned.width, cloned.height);
-            const hasContent = Array.from(imageData.data).some((value, index) =>
-              index % 4 !== 3 && value !== 240 && value !== 249 && value !== 255 // Not just background color
-            );
-
-            if (!hasContent) {
-              throw new Error('Canvas appears to be empty. Please wait for map tiles to load.');
-            }
-
-            // Test if we can read the canvas (will throw if tainted)
-            const testData = cloned.toDataURL('image/png', 0.1); // low quality test
-          } catch (corsError) {
-            if (corsError.message.includes('Canvas')) {
-              throw corsError; // Re-throw our canvas content error
-            }
-            throw new Error('CORS_TAINTED');
+            updateProgress(85, 'Processing html2canvas...');
+            dataURL = canvas.toDataURL('image/png');
+            captureMethod = 'html2canvas';
           }
-
-          // Convert to dataURL (final step)
-          const dataURL = cloned.toDataURL('image/png');
 
           // Clear timeout and progress
           clearTimeout(timeoutId);
@@ -575,37 +592,27 @@
 
           imagePreview.src = dataURL;
           imagePreview.classList.remove('hidden');
-          // Prepare download link
           downloadImage.href = dataURL;
           downloadImage.setAttribute('aria-disabled', 'false');
-          // Store blob for sharing
+
           const blob = dataURLToBlob(dataURL);
           const file = new File([blob], 'sumud_map.png', { type: blob.type });
-          // Attach file to native share button handler closure
           nativeShareImage._shareFile = file;
           nativeShareImage.disabled = false;
-          // hide loading
+
           document.getElementById('imageLoading').classList.add('hidden');
           imageStatus.classList.remove('hidden');
-          imageStatus.innerHTML = '<div class="text-green-600">Preview ready. Use "Share image" or "Download".</div>';
+          imageStatus.innerHTML = `<div class="text-green-600">Preview ready (${captureMethod}). Use "Share image" or "Download".</div>`;
         } catch (err) {
-          // Clear timeout and progress
           clearTimeout(timeoutId);
           clearInterval(progressInterval);
-          // hide loading
           document.getElementById('imageLoading').classList.add('hidden');
 
-          if (err.message === 'CORS_TAINTED') {
-            showError(
-              'Cannot capture image due to CORS restrictions.',
-              'This happens when map tiles are loaded from external domains. Try refreshing the page or using a different map view.'
-            );
-          } else {
-            showError(
-              'Error creating image: ' + err.message,
-              err.message.includes('canvas') ? 'Please wait for the map to fully load before generating the image.' : ''
-            );
-          }
+          console.error('Image capture error:', err);
+          showError(
+            'Error creating image: ' + err.message,
+            'Please wait for the map to fully load and try again.'
+          );
         }
       };
 
