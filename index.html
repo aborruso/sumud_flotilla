@@ -68,6 +68,7 @@
         <hr class="my-6">
         <div class="text-gray-700 text-sm mt-4">
           This map reads data from the <a href="https://globalsumudflotilla.org/tracker/" target="_blank" class="text-blue-700 underline font-semibold">official tracker</a> and updates every 30 minutes. The code is open source and available on <a href="https://github.com/ondata/sumud_flotilla" target="_blank" class="text-blue-700 underline font-semibold">GitHub</a>. The base map is based on free and open data from <a href="https://www.openstreetmap.org/copyright" target="_blank" class="text-blue-700 underline font-semibold">OpenStreetMap</a>. All times displayed are in <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time" target="_blank" class="text-blue-700 underline font-semibold">UTC</a>.
+          <div class="mt-2 text-gray-600"><span id="lastUpdateInfoModal">(data map update: ...)</span></div>
         </div>
       </div>
     </div>
@@ -197,7 +198,10 @@
       try {
         const resp = await fetch('last_updated.txt');
         const txt = await resp.text();
-        document.getElementById('lastUpdate').textContent = `(data map update: ${txt.trim()})`;
+        const updateText = `(data map update: ${txt.trim()})`;
+        document.getElementById('lastUpdate').textContent = updateText;
+        const infoModalUpdate = document.getElementById('lastUpdateInfoModal');
+        if (infoModalUpdate) infoModalUpdate.textContent = updateText;
       } catch {}
     }
 
