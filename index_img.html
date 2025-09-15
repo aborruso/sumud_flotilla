@@ -411,6 +411,25 @@
       const downloadImage = document.getElementById('downloadImage');
       const imageStatus = document.getElementById('imageStatus');
 
+      // Check if browser is Chrome-based (Chrome, Chromium, Edge)
+      function isChromeBasedBrowser() {
+        const userAgent = navigator.userAgent;
+        return userAgent.includes('Chrome') || userAgent.includes('Chromium') || userAgent.includes('Edg');
+      }
+
+      // Check if device is mobile
+      function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
+      }
+
+      // Hide share image button on non-Chrome browsers or mobile devices
+      if (!isChromeBasedBrowser() || isMobileDevice()) {
+        shareImageBtn.style.display = 'none';
+        const reason = !isChromeBasedBrowser() ? 'Chrome-based browser required' : 'Not supported on mobile devices';
+        console.log('Share map image feature disabled:', reason);
+      }
+
       // Utility: convert dataURL to Blob
       function dataURLToBlob(dataURL) {
         const parts = dataURL.split(',');
