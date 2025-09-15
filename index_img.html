@@ -92,12 +92,18 @@
         <div id="shareError" class="hidden mt-3 text-red-600 text-sm text-center"></div>
         <!-- Anteprima immagine e pulsanti per condivisione/download -->
         <div id="imagePreviewContainer" class="hidden mt-4 text-center">
-          <div id="imageLoading" class="flex items-center justify-center gap-2 mb-2 hidden">
-            <svg class="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-            </svg>
-            <span id="imageLoadingText" class="text-sm text-gray-700">Generating image…</span>
+          <div id="imageLoading" class="flex flex-col items-center gap-2 mb-2 hidden">
+            <div class="flex items-center gap-2">
+              <svg class="animate-spin h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+              <span id="imageLoadingText" class="text-sm text-gray-700">Generating image…</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div id="progressText" class="text-xs text-gray-500">Preparing canvas...</div>
           </div>
           <img id="imagePreview" src="" alt="Map preview" class="w-full rounded mb-2 hidden" />
           <div class="flex gap-2">
@@ -415,12 +421,11 @@
         return new Blob([new Uint8Array(array)], { type: mime });
       }
 
-      // Capture map canvas and show preview (with loading state)
+      // Capture map canvas and show preview (with progress and timeout)
       shareImageBtn.onclick = async () => {
         // UI: show container and loading
         imagePreviewContainer.classList.remove('hidden');
         document.getElementById('imageLoading').classList.remove('hidden');
-        document.getElementById('imageLoadingText').textContent = 'Generating image…';
         imagePreview.classList.add('hidden');
         imageStatus.classList.add('hidden');
         // disable buttons
@@ -428,21 +433,93 @@
         downloadImage.removeAttribute('href');
         downloadImage.setAttribute('aria-disabled', 'true');
 
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const imageLoadingText = document.getElementById('imageLoadingText');
+
+        // Progress simulation and timeout handling
+        let progressValue = 0;
+        let timeoutId;
+        let progressInterval;
+
+        const updateProgress = (value, text) => {
+          progressValue = Math.min(100, value);
+          progressBar.style.width = progressValue + '%';
+          progressText.textContent = text;
+        };
+
+        const showError = (message, suggestion = '') => {
+          document.getElementById('imageLoading').classList.add('hidden');
+          imageStatus.classList.remove('hidden');
+          imageStatus.innerHTML = `<div class="text-red-600">${message}</div>${suggestion ? `<div class="text-xs text-gray-500 mt-1">${suggestion}</div>` : ''}`;
+        };
+
         try {
-          // small delay to allow map tiles to render if needed
-          await new Promise(r => setTimeout(r, 500));
+          // Start progress simulation
+          updateProgress(10, 'Preparing canvas...');
+          imageLoadingText.textContent = 'Generating image…';
+
+          // Timeout handler (15 seconds)
+          timeoutId = setTimeout(() => {
+            clearInterval(progressInterval);
+            showError(
+              'Image generation timed out.',
+              'Try zooming out or waiting for map tiles to load completely before generating the image.'
+            );
+          }, 15000);
+
+          // Progress simulation
+          progressInterval = setInterval(() => {
+            if (progressValue < 80) {
+              progressValue += Math.random() * 15;
+              updateProgress(progressValue, progressValue < 30 ? 'Loading map tiles...' :
+                            progressValue < 60 ? 'Rendering canvas...' : 'Converting to image...');
+            }
+          }, 200);
+
+          updateProgress(20, 'Loading map tiles...');
+          // Wait for tiles to potentially load
+          await new Promise(r => setTimeout(r, 800));
+
+          updateProgress(50, 'Rendering canvas...');
 
           // MapLibre provides getCanvas()
           const canvas = map.getCanvas();
+
+          // Check if canvas is available and has content
+          if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            throw new Error('Map canvas is not ready. Please wait for the map to load completely.');
+          }
+
+          updateProgress(70, 'Cloning canvas...');
+
           // Clone the canvas to avoid Firefox tainting issues when overlays are present
           const cloned = document.createElement('canvas');
           cloned.width = canvas.width;
           cloned.height = canvas.height;
           const ctx = cloned.getContext('2d');
-          ctx.drawImage(canvas, 0, 0);
 
-          // Convert to dataURL
+          // Check for canvas tainting (CORS issues)
+          try {
+            ctx.drawImage(canvas, 0, 0);
+            updateProgress(90, 'Converting to image...');
+            // Test if we can read the canvas (will throw if tainted)
+            const testData = cloned.toDataURL('image/png', 0.1); // low quality test
+          } catch (corsError) {
+            throw new Error('CORS_TAINTED');
+          }
+
+          // Convert to dataURL (final step)
           const dataURL = cloned.toDataURL('image/png');
+
+          // Clear timeout and progress
+          clearTimeout(timeoutId);
+          clearInterval(progressInterval);
+          updateProgress(100, 'Complete!');
+
+          // Small delay to show 100% progress
+          await new Promise(r => setTimeout(r, 300));
+
           imagePreview.src = dataURL;
           imagePreview.classList.remove('hidden');
           // Prepare download link
@@ -457,12 +534,25 @@
           // hide loading
           document.getElementById('imageLoading').classList.add('hidden');
           imageStatus.classList.remove('hidden');
-          imageStatus.textContent = 'Preview ready. Use "Share image" or "Download".';
+          imageStatus.innerHTML = '<div class="text-green-600">Preview ready. Use "Share image" or "Download".</div>';
         } catch (err) {
+          // Clear timeout and progress
+          clearTimeout(timeoutId);
+          clearInterval(progressInterval);
           // hide loading
           document.getElementById('imageLoading').classList.add('hidden');
-          imageStatus.classList.remove('hidden');
-          imageStatus.textContent = 'Error creating image: ' + err.message;
+
+          if (err.message === 'CORS_TAINTED') {
+            showError(
+              'Cannot capture image due to CORS restrictions.',
+              'This happens when map tiles are loaded from external domains. Try refreshing the page or using a different map view.'
+            );
+          } else {
+            showError(
+              'Error creating image: ' + err.message,
+              err.message.includes('canvas') ? 'Please wait for the map to fully load before generating the image.' : ''
+            );
+          }
         }
       };
 
