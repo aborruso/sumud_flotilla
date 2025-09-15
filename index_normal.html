@@ -48,7 +48,7 @@
       <input id="vesselSearchInput" type="text" placeholder="Search vessels..." class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
       <div class="max-h-80 overflow-y-auto">
         <table class="w-full text-left">
-          <thead><tr><th class="py-2 border-b text-gray-500">Vessel Name</th><th class="py-2 border-b text-gray-500">Link</th></tr></thead>
+          <thead><tr><th class="py-2 border-b text-gray-500">Vessel Name</th></tr></thead>
           <tbody id="vesselTableBody"></tbody>
         </table>
       </div>
@@ -328,13 +328,8 @@
       vessels.forEach(vessel => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-blue-50';
-        // Link diretto con vessel=ID
-        const vesselUrl = `${window.location.pathname}?vessel=${encodeURIComponent(vessel.id)}`;
         row.innerHTML = `
           <td class="py-2 border-b cursor-pointer hover:underline" title="Zoom to vessel">${vessel.name}</td>
-          <td class="py-2 border-b text-center">
-            <a href="${vesselUrl}" target="_blank" title="Apri solo questa nave" class="text-blue-600 hover:text-blue-900 text-xl">🔗</a>
-          </td>
         `;
         // Click sulla cella nome: zoom e popup
         row.querySelector('td').onclick = () => {
