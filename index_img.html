@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sumud Flotilla status</title>
+  <!-- Open Graph -->
+  <meta property="og:title" content="Sumud Flotilla status" />
+  <meta property="og:description" content="An updated map every 30 minutes, to see the latest position of the flotilla's ships." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ondata.github.io/sumud_flotilla/" />
+  <meta property="og:image" content="https://ondata.github.io/sumud_flotilla/share.png" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Sumud Flotilla status" />
+  <meta name="twitter:description" content="An updated map every 30 minutes, to see the latest position of the flotilla's ships." />
+  <meta name="twitter:url" content="https://ondata.github.io/sumud_flotilla/" />
+  <meta name="twitter:image" content="https://ondata.github.io/sumud_flotilla/share.png" />
+  <!-- MapLibre GL JS (jsDelivr) -->
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100vw; height: 100vh; }
+    .maplibregl-popup-content { font-size: 1rem; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="map"></div>
+
+  <!-- Controlli custom -->
+  <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
+    <button id="zoomToFitBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Zoom to fit</button>
+    <button id="openVesselListBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Vessels List</button>
+    <button id="openInfoBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Info</button>
+    <button id="openShareBtn" class="bg-white border border-gray-300 rounded px-3 py-1 shadow font-bold hover:bg-blue-100">Share</button>
+  </div>
+
+  <!-- Modale lista vascelli -->
+  <div id="vesselModal" class="fixed inset-0 z-30 flex items-center justify-center bg-black bg-opacity-60 hidden">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+      <button id="closeModalBtn" class="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+      <h2 class="text-xl font-bold mb-4">Vessels List</h2>
+      <input id="vesselSearchInput" type="text" placeholder="Search vessels..." class="w-full border border-gray-300 rounded px-3 py-2 mb-3" />
+      <div class="max-h-80 overflow-y-auto">
+        <table class="w-full text-left">
+          <thead><tr><th class="py-2 border-b text-gray-500">Vessel Name</th></tr></thead>
+          <tbody id="vesselTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+    <!-- Modale info -->
+    <div id="infoModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-60 hidden">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-8 relative">
+        <button id="closeInfoModalBtn" class="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+        <h2 class="text-xl font-bold mb-4">About the Global Sumud Flotilla</h2>
+        <div class="text-gray-800 text-base space-y-4">
+          <p class="italic text-blue-700">The map is upside down 🤘: may the world turn upside down for justice!</p>
+          <p><a href="https://globalsumudflotilla.org/" target="_blank" class="text-blue-700 underline font-semibold">The Global Sumud Flotilla (GSF)</a> is the largest civilian maritime mission organized to break Israel's illegal siege on Gaza. Coordinated by grassroots organizers, seafarers, doctors, artists, and solidarity activists from over 40 countries, the flotilla is a nonviolent humanitarian mission responding to the ongoing genocide and siege against the Palestinian people.</p>
+          <p>In August and September 2025, boats of all sizes will set sail from ports around the world, converging toward Gaza to open a humanitarian corridor by sea.</p>
+        </div>
+        <hr class="my-6">
+        <div class="text-gray-700 text-sm mt-4">
+          This map reads data from the <a href="https://globalsumudflotilla.org/tracker/" target="_blank" class="text-blue-700 underline font-semibold">official tracker</a> and updates every 30 minutes. The code is open source and available on <a href="https://github.com/ondata/sumud_flotilla" target="_blank" class="text-blue-700 underline font-semibold">GitHub</a>. The base map is based on free and open data from <a href="https://www.openstreetmap.org/copyright" target="_blank" class="text-blue-700 underline font-semibold">OpenStreetMap</a>. All times displayed are in <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time" target="_blank" class="text-blue-700 underline font-semibold">UTC</a>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Modale condivisione -->
+    <div id="shareModal" class="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-60 hidden">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+        <button id="closeShareModalBtn" class="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Share the map</h2>
+        <div class="space-y-3">
+          <button id="nativeShare" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2">
+            <span>📤</span> Share link
+          </button>
+          <button id="copyLink" class="w-full bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 flex items-center justify-center gap-2">
+            <span>📋</span> Copy link
+          </button>
+          <button id="shareImageBtn" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-2">
+            <span>📷</span> Share map image
+          </button>
+        </div>
+        <div id="copySuccess" class="hidden mt-3 text-green-600 text-sm text-center">Link copied to clipboard!</div>
+        <div id="shareError" class="hidden mt-3 text-red-600 text-sm text-center"></div>
+        <!-- Anteprima immagine e pulsanti per condivisione/download -->
+        <div id="imagePreviewContainer" class="hidden mt-4 text-center">
+          <img id="imagePreview" src="" alt="Map preview" class="w-full rounded mb-2" />
+          <div class="flex gap-2">
+            <button id="nativeShareImage" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">Share image</button>
+            <a id="downloadImage" class="flex-1 bg-gray-600 text-white px-3 py-2 rounded hover:bg-gray-700 text-center" download="sumud_map.png">Download</a>
+          </div>
+          <div id="imageStatus" class="hidden mt-2 text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Source box -->
+  <div id="sourceBox" class="fixed bottom-4 left-4 z-20 bg-white text-black px-3 py-1 rounded shadow text-xs items-center hidden md:flex">
+    <a href="https://globalsumudflotilla.org/tracker/" target="_blank" class="font-bold text-blue-700 underline">Source</a>
+    <span id="lastUpdate" class="ml-2 text-gray-600"></span>
+  </div>
+
+  <!-- Attribution box manuale -->
+  <div id="attributionBox" class="fixed bottom-4 right-4 z-20 bg-white text-black px-3 py-1 rounded shadow text-xs items-center flex">
+    <span>
+      © <a href="https://www.maptiler.com/copyright/" target="_blank" class="text-blue-700 underline font-semibold">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" class="text-blue-700 underline font-semibold">OpenStreetMap contributors</a>
+    </span>
+  </div>
+
+  <script>
+    // Configurazione mappa
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://api.maptiler.com/maps/basic-v2/style.json?key=EY5ljHNQgtB2yYzidUUy',
+      center: [12, 37],
+      zoom: 5,
+      bearing: 180,
+      attributionControl: false
+    });
+    map.addControl(new maplibregl.NavigationControl(), 'top-left');
+
+    // Stato globale
+    let vesselList = [];
+    let clusterSourceId = 'vessels';
+    let popup = null;
+
+    // Carica vessels.json e aggiorna mappa
+    async function loadVessels() {
+      const resp = await fetch('vessels.json');
+      const json = await resp.json();
+      // Estraggo la posizione più recente per ogni nave
+      vesselList = (json.vessels || []).map(v => {
+        const lastPos = Array.isArray(v.positions) && v.positions.length > 0 ? v.positions[v.positions.length - 1] : null;
+        return {
+          id: v.id,
+          name: v.name,
+          status: v.status,
+          type: v.type || '-',
+          mmsi: v.mmsi || '-',
+          last_update: lastPos ? lastPos.timestamp_utc : '-',
+          lat: lastPos ? lastPos.latitude : null,
+          lon: lastPos ? lastPos.longitude : null
+        };
+      }).filter(v => v.lat !== null && v.lon !== null);
+      vesselList.sort((a, b) => a.name.localeCompare(b.name));
+      renderVesselTable(vesselList);
+      addVesselSourceToMap();
+    }
+
+    // Carica timestamp aggiornamento
+    async function loadLastUpdate() {
+      try {
+        const resp = await fetch('last_updated.txt');
+        const txt = await resp.text();
+        document.getElementById('lastUpdate').textContent = `(data map update: ${txt.trim()})`;
+      } catch {}
+    }
+
+    // Aggiungi i dati come source geojson e layer cluster
+    function addVesselSourceToMap() {
+      if (map.getSource(clusterSourceId)) map.removeSource(clusterSourceId);
+      if (map.getLayer('clusters')) map.removeLayer('clusters');
+      if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
+      if (map.getLayer('unclustered-point')) map.removeLayer('unclustered-point');
+
+      const features = vesselList.map(v => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [v.lon, v.lat] },
+        properties: { ...v }
+      }));
+      map.addSource(clusterSourceId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features },
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50
+      });
+      // Cluster layer
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: clusterSourceId,
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#1976D2',
+          'circle-radius': [ 'step', ['get', 'point_count'], 18, 10, 24, 30, 32 ],
+          'circle-opacity': 0.7
+        }
+      });
+      // Cluster count
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: clusterSourceId,
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 14
+        },
+        paint: { 'text-color': '#fff' }
+      });
+      // Unclustered points
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: clusterSourceId,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': '#1976D2',
+          'circle-radius': 6,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#1976D2'
+        }
+      });
+      // Popup su click marker
+      map.on('click', 'unclustered-point', function(e) {
+        const props = e.features[0].properties;
+        showVesselPopup(props, e.features[0].geometry.coordinates);
+      });
+      // Zoom su cluster
+      map.on('click', 'clusters', function(e) {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        const clusterId = features[0].properties.cluster_id;
+        map.getSource(clusterSourceId).getClusterExpansionZoom(clusterId, function (err, zoom) {
+          if (err) return;
+          map.easeTo({ center: features[0].geometry.coordinates, zoom });
+        });
+      });
+      // Cambia il cursore
+      map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+      map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
+      // Fit bounds - initial load with fixed bounds (only if no hash in URL)
+      const hash = window.location.hash;
+      if (!hash || hash.length <= 1) {
+        zoomToFitInitial();
+      }
+    }
+
+    // Initial zoom with fixed boundaries
+    function zoomToFitInitial() {
+      if (!vesselList.length) return;
+      const lats = vesselList.map(v => v.lat);
+      const lons = vesselList.map(v => v.lon);
+
+      // Hard-coded values for initial load
+      const minY = 29.87923893499331;  // Fixed south boundary
+      const maxX = 36.187938538536585; // Fixed east boundary
+
+      // Dynamic values from vessel data
+      const minX = Math.min(...lons);  // West boundary from vessels
+      const maxY = Math.max(...lats);  // North boundary from vessels
+
+      const bounds = [
+        [minX, minY],  // Southwest corner: dynamic west, fixed south
+        [maxX, maxY]   // Northeast corner: fixed east, dynamic north
+      ];
+      map.fitBounds(bounds, { padding: 60, duration: 800, bearing: 180 });
+    }
+
+    // Mostra popup vessel
+    function showVesselPopup(props, coords) {
+      if (popup) popup.remove();
+      const lastUpdate = props.last_update ? props.last_update.replace('T', ' ').slice(0, 19) : '-';
+      const status = props.status || '-';
+      const type = props.type || '-';
+      popup = new maplibregl.Popup({ closeOnClick: true })
+        .setLngLat(coords)
+        .setHTML(`
+          <div class="p-2">
+            <h3 class="font-bold text-lg">${props.name}</h3>
+            <p class="text-xs text-gray-500">Last update: ${lastUpdate}</p>
+            <div class="mt-2 text-sm">
+              <p><span class="font-semibold">Status:</span> ${status}</p>
+              <p><span class="font-semibold">Type:</span> ${type}</p>
+            </div>
+          </div>
+        `)
+        .addTo(map);
+    }
+
+    // Vessel List Modal
+    const vesselModal = document.getElementById('vesselModal');
+    const openVesselListBtn = document.getElementById('openVesselListBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const vesselSearchInput = document.getElementById('vesselSearchInput');
+    const vesselTableBody = document.getElementById('vesselTableBody');
+    openVesselListBtn.onclick = () => { vesselModal.classList.remove('hidden'); renderVesselTable(vesselList); };
+    closeModalBtn.onclick = () => vesselModal.classList.add('hidden');
+    vesselModal.onclick = e => { if (e.target === vesselModal) vesselModal.classList.add('hidden'); };
+    vesselSearchInput.onkeyup = e => {
+      const term = e.target.value.toLowerCase();
+      renderVesselTable(vesselList.filter(v => v.name.toLowerCase().includes(term)));
+    };
+    function renderVesselTable(vessels) {
+      vesselTableBody.innerHTML = '';
+      vessels.forEach(vessel => {
+        const row = document.createElement('tr');
+        row.className = 'cursor-pointer hover:bg-blue-50';
+        row.innerHTML = `<td class="py-2 border-b">${vessel.name}</td>`;
+        row.onclick = () => {
+          vesselModal.classList.add('hidden');
+          map.flyTo({ center: [vessel.lon, vessel.lat], zoom: 15 });
+          setTimeout(() => {
+            showVesselPopup(vessel, [vessel.lon, vessel.lat]);
+          }, 600);
+        };
+        vesselTableBody.appendChild(row);
+      });
+    }
+
+      // Info Modal
+      const infoModal = document.getElementById('infoModal');
+      const openInfoBtn = document.getElementById('openInfoBtn');
+      const closeInfoModalBtn = document.getElementById('closeInfoModalBtn');
+      openInfoBtn.onclick = () => infoModal.classList.remove('hidden');
+      closeInfoModalBtn.onclick = () => infoModal.classList.add('hidden');
+      infoModal.onclick = e => { if (e.target === infoModal) infoModal.classList.add('hidden'); };
+
+      // Share Modal
+      const shareModal = document.getElementById('shareModal');
+      const openShareBtn = document.getElementById('openShareBtn');
+      const closeShareModalBtn = document.getElementById('closeShareModalBtn');
+      const copySuccess = document.getElementById('copySuccess');
+      const shareError = document.getElementById('shareError');
+
+      openShareBtn.onclick = () => shareModal.classList.remove('hidden');
+      closeShareModalBtn.onclick = () => shareModal.classList.add('hidden');
+      shareModal.onclick = e => { if (e.target === shareModal) shareModal.classList.add('hidden'); };
+
+      // Get current URL with hash
+      function getCurrentUrl() {
+        return window.location.href;
+      }
+
+      // Native share button (Web Share API)
+      document.getElementById('nativeShare').onclick = async () => {
+        const url = getCurrentUrl();
+        const shareData = {
+          title: 'Sumud Flotilla status',
+          text: 'Follow the position of the Global Sumud Flotilla',
+          url: url
+        };
+
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+          try {
+            await navigator.share(shareData);
+            shareModal.classList.add('hidden');
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              shareError.textContent = 'Error during sharing: ' + err.message;
+              shareError.classList.remove('hidden');
+              setTimeout(() => shareError.classList.add('hidden'), 5000);
+            }
+          }
+        } else {
+          shareError.textContent = 'Native sharing is not supported. Use "Copy link".';
+          shareError.classList.remove('hidden');
+          setTimeout(() => shareError.classList.add('hidden'), 5000);
+        }
+      };
+
+      // Copy link button
+      document.getElementById('copyLink').onclick = async () => {
+        const url = getCurrentUrl();
+        try {
+          await navigator.clipboard.writeText(url);
+          copySuccess.classList.remove('hidden');
+          setTimeout(() => copySuccess.classList.add('hidden'), 3000);
+        } catch (err) {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = url;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          copySuccess.classList.remove('hidden');
+          setTimeout(() => copySuccess.classList.add('hidden'), 3000);
+        }
+      };
+
+      // Share map image button (opens preview and prepares blob)
+      const shareImageBtn = document.getElementById('shareImageBtn');
+      const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+      const imagePreview = document.getElementById('imagePreview');
+      const nativeShareImage = document.getElementById('nativeShareImage');
+      const downloadImage = document.getElementById('downloadImage');
+      const imageStatus = document.getElementById('imageStatus');
+
+      // Utility: convert dataURL to Blob
+      function dataURLToBlob(dataURL) {
+        const parts = dataURL.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const binary = atob(parts[1]);
+        const array = [];
+        for (let i = 0; i < binary.length; i++) array.push(binary.charCodeAt(i));
+        return new Blob([new Uint8Array(array)], { type: mime });
+      }
+
+      // Capture map canvas and show preview
+      shareImageBtn.onclick = async () => {
+        try {
+          // MapLibre provides getCanvas()
+          const canvas = map.getCanvas();
+          // Clone the canvas to avoid Firefox tainting issues when overlays are present
+          const cloned = document.createElement('canvas');
+          cloned.width = canvas.width;
+          cloned.height = canvas.height;
+          const ctx = cloned.getContext('2d');
+          ctx.drawImage(canvas, 0, 0);
+
+          // Convert to dataURL
+          const dataURL = cloned.toDataURL('image/png');
+          imagePreview.src = dataURL;
+          imagePreviewContainer.classList.remove('hidden');
+          // Prepare download link
+          downloadImage.href = dataURL;
+          // Store blob for sharing
+          const blob = dataURLToBlob(dataURL);
+          const file = new File([blob], 'sumud_map.png', { type: blob.type });
+          // Attach file to native share button handler closure
+          nativeShareImage._shareFile = file;
+          imageStatus.classList.remove('hidden');
+          imageStatus.textContent = 'Preview ready. Use "Share image" or "Download".';
+        } catch (err) {
+          imageStatus.classList.remove('hidden');
+          imageStatus.textContent = 'Error creating image: ' + err.message;
+        }
+      };
+
+      // Native share image
+      nativeShareImage.onclick = async () => {
+        const file = nativeShareImage._shareFile;
+        if (!file) {
+          imageStatus.classList.remove('hidden');
+          imageStatus.textContent = 'No image prepared. Click "Share map image" first.';
+          return;
+        }
+        if (navigator.canShare && navigator.share) {
+          try {
+            await navigator.share({ files: [file], title: 'Sumud Flotilla map', text: 'Current map view' });
+            shareModal.classList.add('hidden');
+          } catch (err) {
+            imageStatus.classList.remove('hidden');
+            imageStatus.textContent = 'Share canceled or failed: ' + err.message;
+          }
+        } else {
+          imageStatus.classList.remove('hidden');
+          imageStatus.textContent = 'Native image sharing is not supported. Use Download.';
+        }
+      };
+
+    // Zoom to fit (button click - uses only vessel data)
+    function zoomToFit() {
+      if (!vesselList.length) return;
+      const lats = vesselList.map(v => v.lat);
+      const lons = vesselList.map(v => v.lon);
+
+      // All boundaries calculated from vessel data
+      const bounds = [
+        [Math.min(...lons), Math.min(...lats)],  // Southwest corner from vessels
+        [Math.max(...lons), Math.max(...lats)]   // Northeast corner from vessels
+      ];
+      map.fitBounds(bounds, { padding: 60, duration: 800, bearing: 180 });
+    }
+    document.getElementById('zoomToFitBtn').onclick = zoomToFit;
+
+    // Stato URL hash
+    map.on('moveend', () => {
+      const c = map.getCenter();
+      const z = map.getZoom();
+      const b = map.getBearing();
+      window.location.hash = `${z.toFixed(2)}/${c.lat.toFixed(5)}/${c.lng.toFixed(5)}/${b.toFixed(2)}`;
+    });
+    window.addEventListener('DOMContentLoaded', () => {
+      // Ripristina stato da hash
+      const hash = window.location.hash;
+      if (hash) {
+        const parts = hash.substring(1).split('/');
+        if (parts.length >= 3) {
+          const zoom = parseFloat(parts[0]);
+          const lat = parseFloat(parts[1]);
+          const lon = parseFloat(parts[2]);
+          const bearing = parts.length >= 4 ? parseFloat(parts[3]) : 180;
+          if (!isNaN(zoom) && !isNaN(lat) && !isNaN(lon)) {
+            map.setCenter([lon, lat]);
+            map.setZoom(zoom);
+            map.setBearing(!isNaN(bearing) ? bearing : 180);
+          }
+        }
+      }
+      loadVessels();
+      loadLastUpdate();
+    });
+  </script>
+</body>
+</html>
