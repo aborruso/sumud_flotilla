@@ -333,11 +333,9 @@
 
       // Native share button (Web Share API)
       document.getElementById('nativeShare').onclick = async () => {
-        const url = getCurrentUrl();
         const shareData = {
           title: 'Global Sumud Flotilla',
-          text: 'Follow and support Global Sumud Flotilla, may the world turn upside down for justice! - https://globalsumudflotilla.org/',
-          url: url
+          text: 'Follow and support Global Sumud Flotilla, may the world turn upside down for justice! - https://globalsumudflotilla.org/'
         };
 
         if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
