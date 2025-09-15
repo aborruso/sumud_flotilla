@@ -478,8 +478,23 @@
           }, 200);
 
           updateProgress(20, 'Loading map tiles...');
-          // Wait for tiles to potentially load
-          await new Promise(r => setTimeout(r, 800));
+
+          // Wait for map to be idle (all tiles loaded)
+          await new Promise((resolve) => {
+            if (map.isStyleLoaded() && map.areTilesLoaded()) {
+              resolve();
+            } else {
+              const checkMap = () => {
+                if (map.isStyleLoaded() && map.areTilesLoaded()) {
+                  map.off('idle', checkMap);
+                  resolve();
+                }
+              };
+              map.on('idle', checkMap);
+              // Fallback timeout
+              setTimeout(resolve, 2000);
+            }
+          });
 
           updateProgress(50, 'Rendering canvas...');
 
@@ -493,19 +508,37 @@
 
           updateProgress(70, 'Cloning canvas...');
 
-          // Clone the canvas to avoid Firefox tainting issues when overlays are present
+          // Clone the canvas and add background if needed
           const cloned = document.createElement('canvas');
           cloned.width = canvas.width;
           cloned.height = canvas.height;
           const ctx = cloned.getContext('2d');
 
+          // Add a background color to avoid transparent/white areas
+          ctx.fillStyle = '#f0f9ff'; // Light blue background
+          ctx.fillRect(0, 0, cloned.width, cloned.height);
+
           // Check for canvas tainting (CORS issues)
           try {
             ctx.drawImage(canvas, 0, 0);
             updateProgress(90, 'Converting to image...');
+
+            // Check if canvas actually has map content (not just background)
+            const imageData = ctx.getImageData(0, 0, cloned.width, cloned.height);
+            const hasContent = Array.from(imageData.data).some((value, index) =>
+              index % 4 !== 3 && value !== 240 && value !== 249 && value !== 255 // Not just background color
+            );
+
+            if (!hasContent) {
+              throw new Error('Canvas appears to be empty. Please wait for map tiles to load.');
+            }
+
             // Test if we can read the canvas (will throw if tainted)
             const testData = cloned.toDataURL('image/png', 0.1); // low quality test
           } catch (corsError) {
+            if (corsError.message.includes('Canvas')) {
+              throw corsError; // Re-throw our canvas content error
+            }
             throw new Error('CORS_TAINTED');
           }
 
