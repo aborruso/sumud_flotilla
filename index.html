@@ -293,7 +293,7 @@
     function renderVesselTable(vessels) {
       // Update title with vessel count
       const vesselListTitle = document.getElementById('vesselListTitle');
-      vesselListTitle.textContent = `Vessels List (${vessels.length})`;
+      vesselListTitle.textContent = `Vessels List (${vessels.length} in total)`;
 
       vesselTableBody.innerHTML = '';
       vessels.forEach(vessel => {
