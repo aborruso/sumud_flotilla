@@ -419,16 +419,24 @@
         return (userAgent.includes('Chrome') || userAgent.includes('Chromium')) && !userAgent.includes('Edg');
       }
 
+      // Check if browser supports html2canvas with WebGL (very limited)
+      function supportsHtml2CanvasWebGL() {
+        const userAgent = navigator.userAgent;
+        // html2canvas has major issues with WebGL on Firefox and Edge
+        return false; // Disable html2canvas fallback for now due to WebGL limitations
+      }
+
       // Check if device is mobile
       function isMobileDevice() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
       }
 
-      // Hide share image button only on mobile devices (desktop browsers will use html2canvas fallback)
-      if (isMobileDevice()) {
+      // Hide share image button on mobile or browsers without proper support
+      if (isMobileDevice() || (!supportsCanvasCapture() && !supportsHtml2CanvasWebGL())) {
         shareImageBtn.style.display = 'none';
-        console.log('Share map image feature disabled: Not supported on mobile devices');
+        const reason = isMobileDevice() ? 'Not supported on mobile devices' : 'WebGL capture not supported on this browser';
+        console.log('Share map image feature disabled:', reason);
       }
 
       // Utility: convert dataURL to Blob
