@@ -2,7 +2,7 @@
 
 **The map is upside down 🤘: may the world turn upside down for justice!**
 
-A real-time interactive map displaying the latest positions of vessels participating in the Global Sumud Flotilla mission, updated every 30 minutes.
+A real-time interactive map displaying the latest positions of vessels participating in the Global Sumud Flotilla mission, updated every 15 minutes.
 
 ## About the Global Sumud Flotilla
 
@@ -19,7 +19,7 @@ The upside-down map orientation serves as a powerful visual metaphor and stateme
 ### Map Visualization
 
 - **180° Rotation**: Map displayed upside down as a symbolic gesture
-- **Real-time Data**: Vessel positions updated every 30 minutes
+- **Real-time Data**: Vessel positions updated every 15 minutes
 - **Intelligent Clustering**: Automatic grouping of markers when zoomed out
 - **Auto-fit Zoom**: Map automatically adjusts to show all vessels on load
 
@@ -41,7 +41,7 @@ The upside-down map orientation serves as a powerful visual metaphor and stateme
 This map reads vessel position data from the [official Global Sumud Flotilla tracker](https://globalsumudflotilla.org/tracker/) API:
 
 - **API Endpoint**: `https://flotilla-orpin.vercel.app/api/vessels`
-- **Update Frequency**: Every 30 minutes
+- **Update Frequency**: Every 15 minutes
 - **Data Format**: JSON with vessel positions, status, and metadata
 
 **Map style and data attribution:**
