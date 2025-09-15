@@ -411,10 +411,11 @@
       const downloadImage = document.getElementById('downloadImage');
       const imageStatus = document.getElementById('imageStatus');
 
-      // Check if browser is Chrome-based (Chrome, Chromium, Edge)
+      // Check if browser is Chrome-based (Chrome, Chromium only - Edge has issues)
       function isChromeBasedBrowser() {
         const userAgent = navigator.userAgent;
-        return userAgent.includes('Chrome') || userAgent.includes('Chromium') || userAgent.includes('Edg');
+        // Only allow Chrome and Chromium, exclude Edge
+        return (userAgent.includes('Chrome') || userAgent.includes('Chromium')) && !userAgent.includes('Edg');
       }
 
       // Check if device is mobile
